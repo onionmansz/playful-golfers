@@ -95,8 +95,8 @@ const GameBoard = () => {
 
     const currentPlayerCards = [...players[currentPlayer].cards];
     const oldCard = currentPlayerCards[index];
-    currentPlayerCards[index] = { ...drawnCard, faceUp: false };
-
+    currentPlayerCards[index] = drawnCard; // The drawn card stays face up when placed
+    
     setPlayers(prevPlayers => {
       const newPlayers = [...prevPlayers];
       newPlayers[currentPlayer] = {
