@@ -65,7 +65,6 @@ const GameBoard = () => {
   const drawCard = (fromDiscard: boolean = false) => {
     if (fromDiscard && discardPile.length === 0) return;
     if (!fromDiscard && deck.length === 0) {
-      // Reshuffle discard pile into deck
       const newDeck = shuffle(discardPile.slice(0, -1));
       setDeck(newDeck);
       setDiscardPile([discardPile[discardPile.length - 1]]);
@@ -91,6 +90,36 @@ const GameBoard = () => {
     toast(`${players[(currentPlayer + 1) % players.length].name}'s turn`);
   };
 
+  const renderPlayerCards = (playerIndex: number) => {
+    const playerCards = players[playerIndex]?.cards || [];
+    return (
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-3 grid grid-cols-3 gap-4">
+          {playerCards.slice(0, 3).map((card, index) => (
+            <PlayingCard
+              key={`p${playerIndex}-row1-${index}`}
+              rank={card.rank}
+              suit={card.suit}
+              faceUp={card.faceUp}
+              className="animate-card-deal"
+            />
+          ))}
+        </div>
+        <div className="col-span-3 grid grid-cols-3 gap-4">
+          {playerCards.slice(3, 6).map((card, index) => (
+            <PlayingCard
+              key={`p${playerIndex}-row2-${index}`}
+              rank={card.rank}
+              suit={card.suit}
+              faceUp={card.faceUp}
+              className="animate-card-deal"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
@@ -105,18 +134,10 @@ const GameBoard = () => {
             </Button>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-12">
             {/* Player 2's hand */}
-            <div className="flex justify-center gap-4">
-              {players[1]?.cards.map((card, index) => (
-                <PlayingCard
-                  key={`p2-${index}`}
-                  rank={card.rank}
-                  suit={card.suit}
-                  faceUp={card.faceUp}
-                  className="animate-card-deal"
-                />
-              ))}
+            <div className="mb-12">
+              {renderPlayerCards(1)}
             </div>
 
             {/* Middle section with deck and discard pile */}
@@ -146,16 +167,8 @@ const GameBoard = () => {
             </div>
 
             {/* Player 1's hand */}
-            <div className="flex justify-center gap-4">
-              {players[0]?.cards.map((card, index) => (
-                <PlayingCard
-                  key={`p1-${index}`}
-                  rank={card.rank}
-                  suit={card.suit}
-                  faceUp={card.faceUp}
-                  className="animate-card-deal"
-                />
-              ))}
+            <div className="mt-12">
+              {renderPlayerCards(0)}
             </div>
 
             {/* Current player indicator */}
