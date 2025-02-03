@@ -42,6 +42,7 @@ const GameBoard = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [drawnCard, setDrawnCard] = useState<Card | null>(null);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -63,6 +64,11 @@ const GameBoard = () => {
   };
 
   const drawCard = (fromDiscard: boolean = false) => {
+    if (drawnCard) {
+      toast("You already have a drawn card!");
+      return;
+    }
+
     if (fromDiscard && discardPile.length === 0) return;
     if (!fromDiscard && deck.length === 0) {
       const newDeck = shuffle(discardPile.slice(0, -1));
@@ -71,18 +77,45 @@ const GameBoard = () => {
       return;
     }
 
-    const drawnCard = fromDiscard 
-      ? discardPile[discardPile.length - 1]
-      : deck[deck.length - 1];
-
+    let drawn: Card;
     if (fromDiscard) {
+      drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
     } else {
+      drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
     }
 
+    setDrawnCard(drawn);
     toast(`${players[currentPlayer].name} drew a card`);
-    return drawnCard;
+  };
+
+  const handleCardClick = (index: number) => {
+    if (!drawnCard) return;
+
+    const currentPlayerCards = [...players[currentPlayer].cards];
+    const oldCard = currentPlayerCards[index];
+    currentPlayerCards[index] = { ...drawnCard, faceUp: false };
+
+    setPlayers(prevPlayers => {
+      const newPlayers = [...prevPlayers];
+      newPlayers[currentPlayer] = {
+        ...newPlayers[currentPlayer],
+        cards: currentPlayerCards,
+      };
+      return newPlayers;
+    });
+
+    setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
+    setDrawnCard(null);
+    nextTurn();
+  };
+
+  const discardDrawnCard = () => {
+    if (!drawnCard) return;
+    setDiscardPile(prev => [...prev, drawnCard]);
+    setDrawnCard(null);
+    nextTurn();
   };
 
   const nextTurn = () => {
@@ -101,6 +134,7 @@ const GameBoard = () => {
               rank={card.rank}
               suit={card.suit}
               faceUp={card.faceUp}
+              onClick={() => handleCardClick(index)}
               className="animate-card-deal"
             />
           ))}
@@ -112,6 +146,7 @@ const GameBoard = () => {
               rank={card.rank}
               suit={card.suit}
               faceUp={card.faceUp}
+              onClick={() => handleCardClick(index + 3)}
               className="animate-card-deal"
             />
           ))}
@@ -162,6 +197,21 @@ const GameBoard = () => {
                     suit={discardPile[discardPile.length - 1].suit}
                     faceUp={true}
                   />
+                </div>
+              )}
+              {drawnCard && (
+                <div className="flex flex-col gap-4 items-center">
+                  <PlayingCard
+                    rank={drawnCard.rank}
+                    suit={drawnCard.suit}
+                    faceUp={true}
+                  />
+                  <Button 
+                    onClick={discardDrawnCard}
+                    variant="destructive"
+                  >
+                    Discard
+                  </Button>
                 </div>
               )}
             </div>
