@@ -1,3 +1,4 @@
+```typescript
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -95,8 +96,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .from('game_rooms')
         .insert([{ 
           status: 'waiting',
-          game_state: initialGameState,
-          player1_id: playerName // Store the first player's name as player1_id
+          game_state: initialGameState
         }])
         .select()
         .single();
@@ -147,8 +147,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       const { error } = await supabase
         .from('game_rooms')
         .update({ 
-          game_state: updatedGameState,
-          player2_id: playerName // Store the second player's name as player2_id
+          game_state: updatedGameState
         })
         .eq('id', gameId);
 
@@ -298,3 +297,4 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     </div>
   );
 };
+```
