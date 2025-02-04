@@ -134,6 +134,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
 
   useEffect(() => {
     if (gameId) {
+      console.log('Subscribing to game updates for:', gameId);
       const gameSubscription = supabase
         .channel(`game_${gameId}`)
         .on(
@@ -166,6 +167,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
         .subscribe();
 
       return () => {
+        console.log('Unsubscribing from game updates');
         supabase.removeChannel(gameSubscription);
       };
     }

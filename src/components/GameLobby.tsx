@@ -27,15 +27,22 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
   useEffect(() => {
     fetchGames();
+    
+    // Subscribe to real-time updates
     const channel = supabase
       .channel('game_rooms')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'game_rooms' 
-      }, () => {
-        fetchGames();
-      })
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'game_rooms' 
+        },
+        () => {
+          console.log('Game rooms updated, fetching latest');
+          fetchGames();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -54,6 +61,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('Fetched games:', data);
       setGames(data || []);
       setLoading(false);
     } catch (error) {
@@ -64,22 +72,35 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
   const createGame = async () => {
     try {
+      const initialGameState = {
+        players: [{
+          name: playerName,
+          ready: false
+        }],
+        gameStarted: false,
+        currentPlayer: 0,
+        deck: [],
+        discardPile: [],
+        drawnCard: null,
+        initialFlipsRemaining: [2, 2],
+        canFlipCard: false,
+        selectedCard: null,
+        finalTurnPlayer: null,
+        gameEnded: false
+      };
+
       const { data, error } = await supabase
         .from('game_rooms')
         .insert([{ 
           status: 'waiting',
-          game_state: {
-            players: [{
-              name: playerName,
-              ready: false
-            }]
-          }
+          game_state: initialGameState
         }])
         .select()
         .single();
 
       if (error) throw error;
       if (data) {
+        console.log('Created game:', data);
         onJoinGame(data.id);
       }
     } catch (error) {
@@ -115,18 +136,20 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       }
 
       const updatedPlayers = [...players, { name: playerName, ready: false }];
+      const updatedGameState = {
+        ...gameState,
+        players: updatedPlayers
+      };
 
       const { error } = await supabase
         .from('game_rooms')
         .update({ 
-          game_state: {
-            ...gameState,
-            players: updatedPlayers
-          }
+          game_state: updatedGameState
         })
         .eq('id', gameId);
 
       if (error) throw error;
+      console.log('Joined game, updated state:', updatedGameState);
       onJoinGame(gameId);
     } catch (error) {
       console.error('Error joining game:', error);
@@ -157,6 +180,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       }
 
       players[playerIndex].ready = !players[playerIndex].ready;
+      const allReady = players.every((p: Player) => p.ready);
 
       const { error } = await supabase
         .from('game_rooms')
@@ -165,13 +189,14 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
             ...gameState,
             players
           },
-          status: players.every((p: Player) => p.ready) ? 'playing' : 'waiting'
+          status: allReady ? 'playing' : 'waiting'
         })
         .eq('id', gameId);
 
       if (error) throw error;
+      console.log('Updated ready state, all ready:', allReady);
 
-      if (players.every((p: Player) => p.ready)) {
+      if (allReady) {
         onJoinGame(gameId);
       }
     } catch (error) {
@@ -226,8 +251,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       Game #{game.id.slice(0, 8)}
                     </TableCell>
                     <TableCell className="text-cream">
-                      {players.map((p: Player) => (
-                        <div key={p.name}>
+                      {players.map((p: Player, index: number) => (
+                        <div key={p.name} className="flex items-center gap-2">
                           {p.name} {p.ready ? '✅' : '⏳'}
                         </div>
                       ))}
