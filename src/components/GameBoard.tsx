@@ -266,9 +266,16 @@ const GameBoard = () => {
   const discardDrawnCard = () => {
     if (!drawnCard) return;
     
+    const currentPlayerCards = players[currentPlayer].cards;
+    const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
+    
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
-    nextTurn();
+    
+    // If only one card is face down, discarding ends the turn
+    if (faceDownCards === 1) {
+      nextTurn();
+    }
   };
 
   const nextTurn = () => {
