@@ -67,7 +67,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      console.log('Fetched games:', data);
       setGames(data || []);
       setLoading(false);
     } catch (error) {
@@ -117,7 +116,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      console.log('Created game:', data);
       onJoinGame(data.id);
     } catch (error) {
       console.error('Error in createGame:', error);
@@ -140,13 +138,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       }
 
       const gameState = currentGame.game_state;
-      if (!gameState || !Array.isArray(gameState.players)) {
-        console.error('Invalid game state:', gameState);
-        toast.error('Invalid game state');
-        return;
-      }
-
-      const players = gameState.players;
+      const players = gameState?.players || [];
 
       if (players.length >= 2) {
         toast.error('Game is full');
@@ -185,7 +177,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      console.log('Joined game:', updatedGameState);
       onJoinGame(gameId);
     } catch (error) {
       console.error('Error in joinGame:', error);
@@ -208,13 +199,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       }
 
       const gameState = currentGame.game_state;
-      if (!gameState?.players) {
-        console.error('Invalid game state:', gameState);
-        toast.error('Invalid game state');
-        return;
-      }
-
-      const players = [...gameState.players];
+      const players = [...(gameState?.players || [])];
       const playerIndex = players.findIndex((p: Player) => p.name === playerName);
 
       if (playerIndex === -1) {
