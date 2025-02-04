@@ -53,7 +53,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
           game_state: {
             players: [{
               name: playerName,
-              ready: false
+              ready: true // Set ready to true by default
             }]
           }
         }])
@@ -62,7 +62,6 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
       if (error) throw error;
       if (data) {
-        setPlayerName("");
         onJoinGame(data.id);
       }
     } catch (error) {
@@ -92,7 +91,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
         return;
       }
 
-      const updatedPlayers = [...players, { name: playerName, ready: false }];
+      const updatedPlayers = [...players, { name: playerName, ready: true }]; // Set ready to true by default
 
       const { error } = await supabase
         .from('game_rooms')
@@ -105,7 +104,6 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
         .eq('id', gameId);
 
       if (error) throw error;
-      setPlayerName("");
       onJoinGame(gameId);
     } catch (error) {
       console.error('Error joining game:', error);
