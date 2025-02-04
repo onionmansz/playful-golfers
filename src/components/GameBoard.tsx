@@ -59,6 +59,59 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const initializeNewOfflineGame = () => {
+    console.log('Creating new offline game...');
+    const initialDeck = shuffleArray(createDeck());
+    const player1Cards = initialDeck.slice(0, 4);
+    const player2Cards = initialDeck.slice(4, 8);
+    const remainingDeck = initialDeck.slice(8);
+    
+    // Make sure we have enough cards for the first discard
+    if (remainingDeck.length === 0) {
+      console.error('Not enough cards to initialize game');
+      return;
+    }
+
+    const firstDiscardCard = remainingDeck.pop();
+    if (!firstDiscardCard) {
+      console.error('Failed to get first discard card');
+      return;
+    }
+
+    firstDiscardCard.faceUp = true;
+    const initialPlayers = [
+      { name: "Player 1", cards: player1Cards, ready: true },
+      { name: "Player 2", cards: player2Cards, ready: true }
+    ];
+
+    setPlayers(initialPlayers);
+    setDeck(remainingDeck);
+    setDiscardPile([firstDiscardCard]);
+    setGameStarted(true);
+    setCurrentPlayer(0);
+    setCanFlipCard(true);
+
+    const initialState = {
+      players: initialPlayers,
+      deck: remainingDeck,
+      discardPile: [firstDiscardCard],
+      gameStarted: true,
+      currentPlayer: 0,
+      drawnCard: null,
+      initialFlipsRemaining: [2, 2],
+      canFlipCard: true,
+      selectedCard: null,
+      finalTurnPlayer: null,
+    };
+    
+    try {
+      localStorage.setItem(gameId!, JSON.stringify(initialState));
+      console.log('Game state saved to localStorage:', initialState);
+    } catch (error) {
+      console.error('Error saving game state:', error);
+    }
+  };
+
   useEffect(() => {
     if (gameId?.startsWith('offline-')) {
       console.log('Initializing offline game...');
@@ -66,16 +119,22 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       if (savedState) {
         try {
           const gameState = JSON.parse(savedState);
-          setPlayers(gameState.players || []);
-          setDeck(gameState.deck || []);
-          setDiscardPile(gameState.discardPile || []);
-          setGameStarted(gameState.gameStarted || false);
-          setCurrentPlayer(gameState.currentPlayer || 0);
-          setDrawnCard(gameState.drawnCard || null);
-          setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
-          setCanFlipCard(gameState.canFlipCard || false);
-          setSelectedCard(gameState.selectedCard || null);
-          setFinalTurnPlayer(gameState.finalTurnPlayer || null);
+          console.log('Loaded saved game state:', gameState);
+          if (gameState.players && gameState.deck && gameState.discardPile) {
+            setPlayers(gameState.players);
+            setDeck(gameState.deck);
+            setDiscardPile(gameState.discardPile);
+            setGameStarted(gameState.gameStarted || false);
+            setCurrentPlayer(gameState.currentPlayer || 0);
+            setDrawnCard(gameState.drawnCard || null);
+            setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
+            setCanFlipCard(gameState.canFlipCard || false);
+            setSelectedCard(gameState.selectedCard || null);
+            setFinalTurnPlayer(gameState.finalTurnPlayer || null);
+          } else {
+            console.log('Invalid saved state, initializing new game');
+            initializeNewOfflineGame();
+          }
         } catch (error) {
           console.error('Error parsing saved game state:', error);
           initializeNewOfflineGame();
@@ -156,77 +215,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       };
     }
   }, [gameId]);
-
-  const initializeNewOfflineGame = () => {
-    console.log('Creating new offline game...');
-    const initialDeck = shuffleArray(createDeck());
-    const player1Cards = initialDeck.slice(0, 4);
-    const player2Cards = initialDeck.slice(4, 8);
-    const remainingDeck = initialDeck.slice(8);
-    const firstDiscardCard = remainingDeck.pop();
-
-    if (!firstDiscardCard) {
-      console.error('Failed to initialize game: no cards in deck');
-      return;
-    }
-
-    firstDiscardCard.faceUp = true;
-    const initialPlayers = [
-      { name: "Player 1", cards: player1Cards, ready: true },
-      { name: "Player 2", cards: player2Cards, ready: true }
-    ];
-
-    setPlayers(initialPlayers);
-    setDeck(remainingDeck);
-    setDiscardPile([firstDiscardCard]);
-    setGameStarted(true);
-    setCurrentPlayer(0);
-    setCanFlipCard(true);
-
-    const initialState = {
-      players: initialPlayers,
-      deck: remainingDeck,
-      discardPile: [firstDiscardCard],
-      gameStarted: true,
-      currentPlayer: 0,
-      drawnCard: null,
-      initialFlipsRemaining: [2, 2],
-      canFlipCard: true,
-      selectedCard: null,
-      finalTurnPlayer: null,
-    };
-    localStorage.setItem(gameId!, JSON.stringify(initialState));
-  };
-
-  useEffect(() => {
-    if (gameId?.startsWith('offline-') && gameStarted) {
-      const gameState = {
-        players,
-        deck,
-        discardPile,
-        gameStarted,
-        currentPlayer,
-        drawnCard,
-        initialFlipsRemaining,
-        canFlipCard,
-        selectedCard,
-        finalTurnPlayer,
-      };
-      localStorage.setItem(gameId, JSON.stringify(gameState));
-    }
-  }, [
-    gameId,
-    players,
-    deck,
-    discardPile,
-    gameStarted,
-    currentPlayer,
-    drawnCard,
-    initialFlipsRemaining,
-    canFlipCard,
-    selectedCard,
-    finalTurnPlayer,
-  ]);
 
   const startGame = async () => {
     const shuffledDeck = shuffleArray(createDeck());
