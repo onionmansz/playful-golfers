@@ -42,10 +42,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return newArray;
 };
 
-interface GameBoardProps {
-  gameId?: string;
-}
-
 const GameBoard = ({ gameId }: GameBoardProps) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [deck, setDeck] = useState<Card[]>([]);
@@ -62,9 +58,11 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   // Initialize or load game state
   useEffect(() => {
     if (gameId?.startsWith('offline-')) {
+      console.log('Initializing offline game...');
       const savedState = localStorage.getItem(gameId);
       if (savedState) {
         try {
+          console.log('Loading saved state:', savedState);
           const gameState = JSON.parse(savedState);
           setPlayers(gameState.players || []);
           setDeck(gameState.deck || []);
@@ -81,6 +79,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
           initializeNewOfflineGame();
         }
       } else {
+        console.log('No saved state found, initializing new game');
         initializeNewOfflineGame();
       }
       setIsLoading(false);
@@ -158,46 +157,69 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   }, [gameId]);
 
   const initializeNewOfflineGame = () => {
+    console.log('Creating new offline game...');
     const initialDeck = shuffleArray(createDeck());
     const player1Cards = initialDeck.slice(0, 4);
     const player2Cards = initialDeck.slice(4, 8);
     const remainingDeck = initialDeck.slice(8);
     const firstDiscardCard = remainingDeck.pop();
 
-    if (firstDiscardCard) {
-      firstDiscardCard.faceUp = true;
-      const initialPlayers = [
-        { name: "Player 1", cards: player1Cards, ready: true },
-        { name: "Player 2", cards: player2Cards, ready: true }
-      ];
-
-      setPlayers(initialPlayers);
-      setDeck(remainingDeck);
-      setDiscardPile([firstDiscardCard]);
-      setGameStarted(true);
-      setCurrentPlayer(0);
-      setCanFlipCard(true);
-
-      // Save initial state to localStorage
-      const initialState = {
-        players: initialPlayers,
-        deck: remainingDeck,
-        discardPile: [firstDiscardCard],
-        gameStarted: true,
-        currentPlayer: 0,
-        drawnCard: null,
-        initialFlipsRemaining: [2, 2],
-        canFlipCard: true,
-        selectedCard: null,
-        finalTurnPlayer: null,
-      };
-      localStorage.setItem(gameId!, JSON.stringify(initialState));
+    if (!firstDiscardCard) {
+      console.error('Failed to initialize game: no cards in deck');
+      return;
     }
+
+    firstDiscardCard.faceUp = true;
+    const initialPlayers = [
+      { name: "Player 1", cards: player1Cards, ready: true },
+      { name: "Player 2", cards: player2Cards, ready: true }
+    ];
+
+    console.log('Initial game state:', {
+      players: initialPlayers,
+      deck: remainingDeck,
+      discardPile: [firstDiscardCard]
+    });
+
+    setPlayers(initialPlayers);
+    setDeck(remainingDeck);
+    setDiscardPile([firstDiscardCard]);
+    setGameStarted(true);
+    setCurrentPlayer(0);
+    setCanFlipCard(true);
+
+    // Save initial state to localStorage
+    const initialState = {
+      players: initialPlayers,
+      deck: remainingDeck,
+      discardPile: [firstDiscardCard],
+      gameStarted: true,
+      currentPlayer: 0,
+      drawnCard: null,
+      initialFlipsRemaining: [2, 2],
+      canFlipCard: true,
+      selectedCard: null,
+      finalTurnPlayer: null,
+    };
+    localStorage.setItem(gameId!, JSON.stringify(initialState));
   };
 
   // Save state changes to localStorage for offline games
   useEffect(() => {
     if (gameId?.startsWith('offline-') && gameStarted) {
+      console.log('Saving game state to localStorage:', {
+        players,
+        deck,
+        discardPile,
+        gameStarted,
+        currentPlayer,
+        drawnCard,
+        initialFlipsRemaining,
+        canFlipCard,
+        selectedCard,
+        finalTurnPlayer,
+      });
+      
       const gameState = {
         players,
         deck,
@@ -337,34 +359,26 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     }, 0);
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-table flex items-center justify-center">
+        <div className="text-cream text-2xl">Loading game...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
         {!gameStarted ? (
           <div className="flex flex-col items-center justify-center space-y-8">
-            <h1 className="text-4xl font-bold text-cream">
-              {players.length < 2 
-                ? "Waiting for players to join..."
-                : !players.every(p => p.ready)
-                  ? "Waiting for players to be ready..."
-                  : "Ready to Start!"}
-            </h1>
-            {players.length === 2 && players.every(p => p.ready) && (
-              <Button
-                onClick={startGame}
-                className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
-              >
-                Start Game
-              </Button>
-            )}
-            <div className="text-cream text-xl">
-              Players:
-              {players.map((player, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  {player.name} {player.ready ? '✅' : '⏳'}
-                </div>
-              ))}
-            </div>
+            <h1 className="text-4xl font-bold text-cream">Ready to Start!</h1>
+            <Button
+              onClick={startGame}
+              className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
+            >
+              Start Game
+            </Button>
           </div>
         ) : (
           <div className="space-y-8">
@@ -494,7 +508,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
               </div>
             </div>
 
-            {/* Final Score Line */}
             {finalTurnPlayer !== null && (
               <div className="text-center text-2xl text-cream mt-8">
                 Game Over! Final Scores:
