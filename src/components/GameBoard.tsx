@@ -64,55 +64,24 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     if (gameId?.startsWith('offline-')) {
       const savedState = localStorage.getItem(gameId);
       if (savedState) {
-        const gameState = JSON.parse(savedState);
-        setPlayers(gameState.players || []);
-        setDeck(gameState.deck || []);
-        setDiscardPile(gameState.discardPile || []);
-        setGameStarted(gameState.gameStarted || false);
-        setCurrentPlayer(gameState.currentPlayer || 0);
-        setDrawnCard(gameState.drawnCard || null);
-        setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
-        setCanFlipCard(gameState.canFlipCard || false);
-        setSelectedCard(gameState.selectedCard || null);
-        setFinalTurnPlayer(gameState.finalTurnPlayer || null);
-      } else {
-        // Initialize new offline game
-        const initialDeck = shuffleArray(createDeck());
-        const player1Cards = initialDeck.slice(0, 4);
-        const player2Cards = initialDeck.slice(4, 8);
-        const remainingDeck = initialDeck.slice(8);
-        const firstDiscardCard = remainingDeck.pop();
-
-        if (firstDiscardCard) {
-          firstDiscardCard.faceUp = true;
-          const initialPlayers = [
-            { name: "Player 1", cards: player1Cards, ready: true },
-            { name: "Player 2", cards: player2Cards, ready: true }
-          ];
-
-          setPlayers(initialPlayers);
-          setDeck(remainingDeck);
-          setDiscardPile([firstDiscardCard]);
-          setGameStarted(true);
-          setCurrentPlayer(0);
-          setCanFlipCard(true);
-
-          // Save initial state to localStorage
-          const initialState = {
-            players: initialPlayers,
-            deck: remainingDeck,
-            discardPile: [firstDiscardCard],
-            gameStarted: true,
-            currentPlayer: 0,
-            drawnCard: null,
-            initialFlipsRemaining: [2, 2],
-            canFlipCard: true,
-            selectedCard: null,
-            finalTurnPlayer: null,
-            isOffline: true
-          };
-          localStorage.setItem(gameId, JSON.stringify(initialState));
+        try {
+          const gameState = JSON.parse(savedState);
+          setPlayers(gameState.players || []);
+          setDeck(gameState.deck || []);
+          setDiscardPile(gameState.discardPile || []);
+          setGameStarted(gameState.gameStarted || false);
+          setCurrentPlayer(gameState.currentPlayer || 0);
+          setDrawnCard(gameState.drawnCard || null);
+          setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
+          setCanFlipCard(gameState.canFlipCard || false);
+          setSelectedCard(gameState.selectedCard || null);
+          setFinalTurnPlayer(gameState.finalTurnPlayer || null);
+        } catch (error) {
+          console.error('Error parsing saved game state:', error);
+          initializeNewOfflineGame();
         }
+      } else {
+        initializeNewOfflineGame();
       }
       setIsLoading(false);
       return;
@@ -188,6 +157,44 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     };
   }, [gameId]);
 
+  const initializeNewOfflineGame = () => {
+    const initialDeck = shuffleArray(createDeck());
+    const player1Cards = initialDeck.slice(0, 4);
+    const player2Cards = initialDeck.slice(4, 8);
+    const remainingDeck = initialDeck.slice(8);
+    const firstDiscardCard = remainingDeck.pop();
+
+    if (firstDiscardCard) {
+      firstDiscardCard.faceUp = true;
+      const initialPlayers = [
+        { name: "Player 1", cards: player1Cards, ready: true },
+        { name: "Player 2", cards: player2Cards, ready: true }
+      ];
+
+      setPlayers(initialPlayers);
+      setDeck(remainingDeck);
+      setDiscardPile([firstDiscardCard]);
+      setGameStarted(true);
+      setCurrentPlayer(0);
+      setCanFlipCard(true);
+
+      // Save initial state to localStorage
+      const initialState = {
+        players: initialPlayers,
+        deck: remainingDeck,
+        discardPile: [firstDiscardCard],
+        gameStarted: true,
+        currentPlayer: 0,
+        drawnCard: null,
+        initialFlipsRemaining: [2, 2],
+        canFlipCard: true,
+        selectedCard: null,
+        finalTurnPlayer: null,
+      };
+      localStorage.setItem(gameId!, JSON.stringify(initialState));
+    }
+  };
+
   // Save state changes to localStorage for offline games
   useEffect(() => {
     if (gameId?.startsWith('offline-') && gameStarted) {
@@ -202,7 +209,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
         canFlipCard,
         selectedCard,
         finalTurnPlayer,
-        isOffline: true
       };
       localStorage.setItem(gameId, JSON.stringify(gameState));
     }
@@ -319,6 +325,18 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     );
   }
 
+  const calculateScore = (player: Player) => {
+    return player.cards.reduce((total, card) => {
+      if (!card.faceUp) return total + 0;
+      if (card.rank === "A") return total + 1;
+      if (card.rank === "K") return total + 13;
+      if (card.rank === "Q") return total + 12;
+      if (card.rank === "J") return total + 11;
+      if (card.rank === "JOKER") return total + 0;
+      return total + parseInt(card.rank);
+    }, 0);
+  };
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
@@ -359,6 +377,16 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
                   Flips remaining: {initialFlipsRemaining[currentPlayer]}
                 </div>
               )}
+            </div>
+
+            {/* Score Board */}
+            <div className="bg-green-900/30 p-4 rounded-lg mb-4">
+              <h3 className="text-xl font-bold text-cream mb-2">Scores:</h3>
+              {players.map((player, index) => (
+                <div key={index} className="text-cream">
+                  {player.name}: {calculateScore(player)} points
+                </div>
+              ))}
             </div>
 
             <div className="grid grid-cols-2 gap-8">
@@ -465,6 +493,18 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
                 </div>
               </div>
             </div>
+
+            {/* Final Score Line */}
+            {finalTurnPlayer !== null && (
+              <div className="text-center text-2xl text-cream mt-8">
+                Game Over! Final Scores:
+                {players.map((player, index) => (
+                  <div key={index}>
+                    {player.name}: {calculateScore(player)} points
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
