@@ -238,6 +238,7 @@ const GameBoard = () => {
       return;
     }
 
+    // Check if player has already drawn and discarded this turn
     if (hasDrawnAndDiscarded) {
       toast("You've already drawn and discarded this turn!");
       return;
@@ -274,7 +275,7 @@ const GameBoard = () => {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
       setSelectedCard('drawn');
-      setHasDrawnFromMainDeck(true);
+      setHasDrawnFromMainDeck(true); // Set this flag when drawing from main deck
     }
 
     setDrawnCard(drawn);
@@ -360,7 +361,7 @@ const GameBoard = () => {
       setDrawnCard(null);
       setSelectedCard(null);
       setCanFlipCard(false);
-      setHasDrawnAndDiscarded(true);
+      setHasDrawnAndDiscarded(true); // Set this flag when discarding
 
       // If this is the final turn player's move
       if (finalTurnPlayer === currentPlayer) {
@@ -472,7 +473,7 @@ const GameBoard = () => {
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
     setSelectedCard(null);
-    setHasDrawnAndDiscarded(true);
+    setHasDrawnAndDiscarded(true); // Set this flag when discarding
     
     // If only one card is face down, discarding ends the turn
     if (faceDownCards === 1) {
