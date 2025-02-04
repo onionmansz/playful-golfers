@@ -1,10 +1,10 @@
 import GameBoard from "@/components/GameBoard";
 
-interface IndexProps {
-  gameId: string;
+interface GameBoardProps {
+  gameId?: string;
 }
 
-const Index = ({ gameId }: IndexProps) => {
+const Index = ({ gameId }: GameBoardProps) => {
   return <GameBoard gameId={gameId} />;
 };
 

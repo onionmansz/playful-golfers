@@ -122,7 +122,11 @@ const shuffle = (array: Card[]) => {
   return newArray;
 };
 
-const GameBoard = () => {
+interface GameBoardProps {
+  gameId?: string;
+}
+
+const GameBoard = ({ gameId }: GameBoardProps) => {
   const [deck, setDeck] = useState<Card[]>([]);
   const [discardPile, setDiscardPile] = useState<Card[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);

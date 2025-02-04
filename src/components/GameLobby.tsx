@@ -85,8 +85,8 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-2xl space-y-8 bg-cream/10 p-8 rounded-lg">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-table p-4">
+      <div className="w-full max-w-2xl space-y-8 bg-cream/5 p-8 rounded-lg backdrop-blur-sm border border-cream/10">
         <h2 className="text-3xl font-bold text-center text-cream">Game Lobby</h2>
         <div className="flex justify-center">
           <Button
@@ -107,7 +107,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
               {games.map((game) => (
                 <div
                   key={game.id}
-                  className="flex justify-between items-center bg-cream/5 p-4 rounded-lg"
+                  className="flex justify-between items-center bg-cream/5 p-4 rounded-lg border border-cream/10"
                 >
                   <span className="text-cream">Game #{game.id.slice(0, 8)}</span>
                   <Button
