@@ -254,7 +254,6 @@ const GameBoard = () => {
         return newCards;
       });
 
-      // Add old card to discard pile
       setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
       setDrawnCard(null);
       setSelectedCard(null);
@@ -267,18 +266,11 @@ const GameBoard = () => {
       );
       const allFaceUp = updatedPlayerCards.every(card => card.faceUp);
 
-      if (allFaceUp) {
-        setGameEnded(true);
-        setCards(prevCards => {
-          const newCards = [...prevCards];
-          // Reveal all remaining cards for both players
-          for (let i = 0; i < newCards.length; i++) {
-            newCards[i] = { ...newCards[i], faceUp: true };
-          }
-          return newCards;
-        });
-        calculateAndDisplayFinalScores();
-      } else if (finalTurnPlayer === currentPlayer) {
+      if (allFaceUp && finalTurnPlayer === null) {
+        // Set the other player as the final turn player
+        setFinalTurnPlayer((currentPlayer + 1) % 2);
+        nextTurn();
+      } else if (allFaceUp || finalTurnPlayer === currentPlayer) {
         setGameEnded(true);
         setCards(prevCards => {
           const newCards = [...prevCards];
@@ -303,7 +295,10 @@ const GameBoard = () => {
           const updatedPlayerCards = newCards.slice(playerStartIndex, playerEndIndex);
           const allFaceUp = updatedPlayerCards.every(card => card.faceUp);
           
-          if (allFaceUp) {
+          if (allFaceUp && finalTurnPlayer === null) {
+            // Set the other player as the final turn player
+            setFinalTurnPlayer((currentPlayer + 1) % 2);
+          } else if (allFaceUp || finalTurnPlayer === currentPlayer) {
             // Reveal all cards and end the game
             for (let i = 0; i < newCards.length; i++) {
               newCards[i] = { ...newCards[i], faceUp: true };
