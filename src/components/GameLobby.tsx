@@ -61,7 +61,10 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
         .single();
 
       if (error) throw error;
-      if (data) onJoinGame(data.id);
+      if (data) {
+        setPlayerName("");
+        onJoinGame(data.id);
+      }
     } catch (error) {
       console.error('Error creating game:', error);
       toast.error('Failed to create game');
@@ -102,6 +105,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
         .eq('id', gameId);
 
       if (error) throw error;
+      setPlayerName("");
       onJoinGame(gameId);
     } catch (error) {
       console.error('Error joining game:', error);
@@ -120,7 +124,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
   if (!showGames) {
     return (
-      <div className="min-h-screen bg-table flex items-center justify-center p-4">
+      <div className="min-h-screen bg-green-700 flex items-center justify-center p-4">
         <div className="bg-cream/10 p-8 rounded-lg shadow-xl max-w-md w-full">
           <h1 className="text-3xl font-bold text-cream mb-6 text-center">Welcome to 6-Card Golf</h1>
           <form onSubmit={handleNameSubmit} className="space-y-4">
@@ -147,14 +151,14 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-table flex items-center justify-center">
+      <div className="min-h-screen bg-green-700 flex items-center justify-center">
         <div className="text-center text-cream p-4">Loading games...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-table p-4">
+    <div className="min-h-screen bg-green-700 p-4">
       <div className="container mx-auto max-w-4xl">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -180,7 +184,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
                 <div className="text-cream">
                   <p className="font-semibold">Game #{game.id.slice(0, 8)}</p>
                   <p className="text-sm text-cream/80">
-                    Players: {players.map(p => p.name).join(', ') || 'No players'}
+                    Players: {players.length}/2
                   </p>
                   <p className="text-sm text-cream/80">Status: {game.status}</p>
                 </div>
