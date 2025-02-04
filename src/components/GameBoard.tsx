@@ -278,8 +278,10 @@ const GameBoard = () => {
       if (allFaceUp && finalTurnPlayer === null) {
         // Set the other player as the final turn player
         setFinalTurnPlayer((currentPlayer + 1) % 2);
+        toast(`Player ${currentPlayer + 1} has revealed all cards! Player ${((currentPlayer + 1) % 2) + 1} gets one final turn.`);
         nextTurn();
-      } else if (allFaceUp || finalTurnPlayer === currentPlayer) {
+      } else if (finalTurnPlayer !== null && finalTurnPlayer === currentPlayer) {
+        // Only end the game if we're on the final player's turn
         setGameEnded(true);
         setCards(prevCards => {
           const newCards = [...prevCards];
@@ -307,12 +309,14 @@ const GameBoard = () => {
           if (allFaceUp && finalTurnPlayer === null) {
             // Set the other player as the final turn player
             setFinalTurnPlayer((currentPlayer + 1) % 2);
-          } else if (allFaceUp || finalTurnPlayer === currentPlayer) {
-            // Reveal all cards and end the game
+            toast(`Player ${currentPlayer + 1} has revealed all cards! Player ${((currentPlayer + 1) % 2) + 1} gets one final turn.`);
+          } else if (finalTurnPlayer !== null && finalTurnPlayer === currentPlayer) {
+            // Only end the game if we're on the final player's turn
+            setGameEnded(true);
+            // Reveal all cards
             for (let i = 0; i < newCards.length; i++) {
               newCards[i] = { ...newCards[i], faceUp: true };
             }
-            setGameEnded(true);
             setTimeout(() => calculateAndDisplayFinalScores(), 100);
           }
           
