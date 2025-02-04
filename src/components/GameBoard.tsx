@@ -287,7 +287,6 @@ const GameBoard = () => {
     // Determine which player's cards were clicked
     const isPlayer1Cards = index < 6;
     const isPlayer2Cards = !isPlayer1Cards;
-    const clickedPlayerIndex = isPlayer1Cards ? 0 : 1;
     
     // Prevent clicking opponent's cards during regular gameplay
     if (!initialFlipsRemaining.some(flips => flips > 0)) {  // Not in initial flip phase
@@ -299,16 +298,10 @@ const GameBoard = () => {
 
     // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
-      // Only allow flipping your own cards during initial phase
-      if (clickedPlayerIndex !== currentPlayer) {
-        toast.error("You can only flip your own cards!");
-        return;
-      }
-
       const currentPlayerCards = [...players[currentPlayer].cards];
       
       // Check if this card is already face up
-      if (currentPlayerCards[index % 6].faceUp) {
+      if (currentPlayerCards[index].faceUp) {
         toast("You must flip a different card!");
         return;
       }
@@ -316,7 +309,7 @@ const GameBoard = () => {
       // Get all currently flipped cards for this player during initial phase
       const flippedCards = currentPlayerCards.filter(card => card.faceUp);
       
-      currentPlayerCards[index % 6] = { ...currentPlayerCards[index % 6], faceUp: true };
+      currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
       
       setPlayers(prevPlayers => {
         const newPlayers = [...prevPlayers];
@@ -351,19 +344,13 @@ const GameBoard = () => {
     // Handle regular gameplay
     if (!drawnCard && !canFlipCard) return;
 
-    // Ensure we're only working with the current player's cards
-    if (clickedPlayerIndex !== currentPlayer) {
-      toast.error("You can only interact with your own cards!");
-      return;
-    }
-
     const currentPlayerCards = [...players[currentPlayer].cards];
     const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
     
     if (drawnCard && selectedCard) {
       // Replace card with drawn card
-      const oldCard = currentPlayerCards[index % 6];
-      currentPlayerCards[index % 6] = drawnCard;
+      const oldCard = currentPlayerCards[index];
+      currentPlayerCards[index] = drawnCard;
       
       // Update players state with the new card
       setPlayers(prevPlayers => {
@@ -400,10 +387,10 @@ const GameBoard = () => {
       } else {
         nextTurn();
       }
-    } else if (canFlipCard && !currentPlayerCards[index % 6].faceUp) {
+    } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
       // Allow flipping if there's more than one face-down card OR if this is the last card
       if (faceDownCards > 1 || faceDownCards === 1) {
-        currentPlayerCards[index % 6] = { ...currentPlayerCards[index % 6], faceUp: true };
+        currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
         
         setPlayers(prevPlayers => {
           const newPlayers = [...prevPlayers];
