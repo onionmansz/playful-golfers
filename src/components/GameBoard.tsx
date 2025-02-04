@@ -554,28 +554,8 @@ const GameBoard = () => {
               {renderPlayerCards(1)}
             </div>
 
-            {/* Middle section with deck, discard pile, and game info */}
-            <div className="flex justify-center items-center gap-16 my-12">
-              {/* Game status and current player indicator */}
-              <div className="flex flex-col items-start gap-4 min-w-48">
-                <div className="text-cream text-xl">
-                  {gameEnded 
-                    ? "Game Over!"
-                    : initialFlipsRemaining.some(flips => flips > 0) 
-                      ? `${currentPlayer === 0 ? "Player 1" : "Player 2"} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
-                      : `${currentPlayer === 0 ? "Player 1" : "Player 2"}'s Turn`}
-                </div>
-                {gameEnded && (
-                  <div className="text-cream space-y-2">
-                    <h3 className="font-bold text-lg">Final Scores:</h3>
-                    <div className="space-y-1">
-                      <p>Player 1: {calculatePlayerScore(0, cards)}</p>
-                      <p>Player 2: {calculatePlayerScore(1, cards)}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
+            {/* Middle section with deck and discard pile */}
+            <div className="flex justify-center gap-16 my-12">
               <div className="flex flex-col items-center gap-2">
                 <div 
                   onClick={() => drawCard(false)}
@@ -626,7 +606,9 @@ const GameBoard = () => {
                     variant="destructive"
                     className="text-lg font-semibold px-6 py-3 text-white border-2 border-white hover:border-red-300"
                   >
-                    Discard
+                    {cards.filter(card => !card.faceUp).length === 1 
+                      ? "End Turn" 
+                      : "Discard"}
                   </Button>
                 </div>
               )}
@@ -635,6 +617,15 @@ const GameBoard = () => {
             {/* Player 1's hand */}
             <div className="mt-12">
               {renderPlayerCards(0)}
+            </div>
+
+            {/* Current player indicator */}
+            <div className="text-center text-cream text-2xl mt-8">
+              {gameEnded 
+                ? "Game Over!"
+                : initialFlipsRemaining.some(flips => flips > 0) 
+                  ? `${currentPlayer === 0 ? "Player 1" : "Player 2"} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
+                  : `${currentPlayer === 0 ? "Player 1" : "Player 2"}'s Turn`}
             </div>
           </div>
         )}
