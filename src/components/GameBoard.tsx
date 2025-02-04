@@ -69,8 +69,16 @@ const GameBoard = () => {
       return;
     }
 
-    if (fromDiscard && discardPile.length === 0) return;
+    if (fromDiscard && discardPile.length === 0) {
+      toast("No cards in discard pile!");
+      return;
+    }
+
     if (!fromDiscard && deck.length === 0) {
+      if (discardPile.length <= 1) {
+        toast("No cards left to draw!");
+        return;
+      }
       const newDeck = shuffle(discardPile.slice(0, -1));
       setDeck(newDeck);
       setDiscardPile([discardPile[discardPile.length - 1]]);
