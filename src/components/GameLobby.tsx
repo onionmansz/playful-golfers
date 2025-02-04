@@ -325,9 +325,10 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       {isInGame && !gameStarted && (
                         <Button 
                           onClick={() => toggleReady(game.id)}
-                          className={currentPlayer.ready ? 'bg-green-500 hover:opacity-90 text-black' : 'bg-yellow-500 hover:opacity-90 text-black'}
+                          variant={currentPlayer?.ready ? "default" : "secondary"}
+                          className={currentPlayer?.ready ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-yellow-500 hover:bg-yellow-600 text-black'}
                         >
-                          {currentPlayer.ready ? 'Ready!' : 'Ready Up'}
+                          {currentPlayer?.ready ? 'Ready!' : 'Ready Up'}
                         </Button>
                       )}
                     </TableCell>
