@@ -217,6 +217,11 @@ const GameBoard = () => {
   }, [players, gameStarted]);
 
   const drawCard = (fromDiscard: boolean = false) => {
+    if (gameEnded) {
+      toast("Game is over! No more moves allowed.");
+      return;
+    }
+
     if (initialFlipsRemaining.some(flips => flips > 0)) {
       toast("Both players must flip two cards before drawing!");
       return;
