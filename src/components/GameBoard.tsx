@@ -335,7 +335,7 @@ const GameBoard = () => {
               <Button 
                 onClick={restartGame}
                 variant="destructive"
-                className="mb-4"
+                className="mb-4 text-lg font-semibold px-6 py-3"
               >
                 Restart Game
               </Button>
@@ -380,8 +380,11 @@ const GameBoard = () => {
                   <Button 
                     onClick={discardDrawnCard}
                     variant="destructive"
+                    className="text-lg font-semibold px-6 py-3"
                   >
-                    Discard
+                    {players[currentPlayer].cards.filter(card => !card.faceUp).length === 1 
+                      ? "End Turn" 
+                      : "Discard"}
                   </Button>
                 </div>
               )}
