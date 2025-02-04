@@ -133,6 +133,7 @@ const GameBoard = () => {
   const [gameEnded, setGameEnded] = useState(false);
   const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
+  const [finalTurnDelay, setFinalTurnDelay] = useState(false);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -184,15 +185,21 @@ const GameBoard = () => {
         return;
       }
       
-      // If the other player has had their final turn, flip all their remaining cards
-      if (finalTurnPlayer === currentPlayer) {
-        const updatedPlayers = [...players];
-        updatedPlayers[otherPlayer].cards = updatedPlayers[otherPlayer].cards.map(card => ({
-          ...card,
-          faceUp: true
-        }));
-        setPlayers(updatedPlayers);
-        setGameEnded(true);
+      // If the other player has had their final turn, set a delay before flipping cards
+      if (finalTurnPlayer === currentPlayer && !finalTurnDelay) {
+        setFinalTurnDelay(true);
+        
+        // Set a 2-second delay before flipping the remaining cards
+        setTimeout(() => {
+          const updatedPlayers = [...players];
+          updatedPlayers[otherPlayer].cards = updatedPlayers[otherPlayer].cards.map(card => ({
+            ...card,
+            faceUp: true
+          }));
+          setPlayers(updatedPlayers);
+          setGameEnded(true);
+          setFinalTurnDelay(false);
+        }, 2000);
       }
     }
     
