@@ -23,10 +23,11 @@ type Player = {
   cards: Card[];
 };
 
-const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "JOKER"];
 const SUITS = ["♣", "♦", "♥", "♠"];
 
 const getCardValue = (rank: string): number => {
+  if (rank === "JOKER") return -5;
   if (rank === "K") return 0;
   if (rank === "5") return -5;
   if (["J", "Q"].includes(rank)) return 10;
@@ -99,11 +100,15 @@ const calculateSquareBonus = (cards: Card[], startIndex: number): number => {
 
 const createDeck = () => {
   const deck: Card[] = [];
+  // Add regular cards
   for (const suit of SUITS) {
-    for (const rank of RANKS) {
+    for (const rank of RANKS.filter(r => r !== "JOKER")) {
       deck.push({ rank, suit, faceUp: false });
     }
   }
+  // Add 2 jokers
+  deck.push({ rank: "JOKER", suit: "♦", faceUp: false });
+  deck.push({ rank: "JOKER", suit: "♥", faceUp: false });
   return shuffle(deck);
 };
 
@@ -295,6 +300,21 @@ const GameBoard = () => {
     // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
       const currentPlayerCards = [...players[currentPlayer].cards];
+      
+      // Check if this card is already face up
+      if (currentPlayerCards[index].faceUp) {
+        toast("You must flip a different card!");
+        return;
+      }
+      
+      // Check if this would create a duplicate flip
+      const firstFlippedCardIndex = currentPlayerCards.findIndex(card => card.faceUp);
+      if (firstFlippedCardIndex !== -1 && 
+          currentPlayerCards[firstFlippedCardIndex].rank === currentPlayerCards[index].rank) {
+        toast("You cannot flip two cards of the same rank during initial flips!");
+        return;
+      }
+      
       currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
       
       setPlayers(prevPlayers => {
@@ -446,6 +466,10 @@ const GameBoard = () => {
             </TableRow>
             <TableRow className="hover:bg-cream/5">
               <TableCell>Five (5)</TableCell>
+              <TableCell>-5 points</TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>Joker</TableCell>
               <TableCell>-5 points</TableCell>
             </TableRow>
             <TableRow className="hover:bg-cream/5">
