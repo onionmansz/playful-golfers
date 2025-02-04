@@ -132,6 +132,7 @@ const GameBoard = () => {
   const [canFlipCard, setCanFlipCard] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
   const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
+  const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -168,10 +169,6 @@ const GameBoard = () => {
   };
 
   const checkGameEnd = () => {
-    const allCardsVisible = players.every(player => 
-      player.cards.every(card => card.faceUp)
-    );
-    
     // Check if one player has revealed all their cards
     const playerWithAllCardsRevealed = players.findIndex(player => 
       player.cards.every(card => card.faceUp)
@@ -180,8 +177,15 @@ const GameBoard = () => {
     if (playerWithAllCardsRevealed !== -1) {
       const otherPlayer = (playerWithAllCardsRevealed + 1) % 2;
       
+      // If this is the first time we detect a player with all cards revealed
+      if (finalTurnPlayer === null) {
+        setFinalTurnPlayer(otherPlayer);
+        toast(`${players[playerWithAllCardsRevealed].name} has revealed all cards! ${players[otherPlayer].name} gets one final turn!`);
+        return;
+      }
+      
       // If the other player has had their final turn, flip all their remaining cards
-      if (players[otherPlayer].cards.some(card => !card.faceUp)) {
+      if (finalTurnPlayer === currentPlayer) {
         const updatedPlayers = [...players];
         updatedPlayers[otherPlayer].cards = updatedPlayers[otherPlayer].cards.map(card => ({
           ...card,
@@ -191,6 +195,10 @@ const GameBoard = () => {
         setGameEnded(true);
       }
     }
+    
+    const allCardsVisible = players.every(player => 
+      player.cards.every(card => card.faceUp)
+    );
     
     if (allCardsVisible) {
       setGameEnded(true);
@@ -245,6 +253,13 @@ const GameBoard = () => {
         </div>
       );
     }
+  };
+
+  const nextTurn = () => {
+    // If it's the final turn player's turn and they've completed their turn,
+    // this will trigger the game end in the next checkGameEnd
+    setCurrentPlayer((prev) => (prev + 1) % players.length);
+    toast(`${players[(currentPlayer + 1) % players.length].name}'s turn`);
   };
 
   useEffect(() => {
@@ -401,11 +416,6 @@ const GameBoard = () => {
     if (faceDownCards === 1) {
       nextTurn();
     }
-  };
-
-  const nextTurn = () => {
-    setCurrentPlayer((prev) => (prev + 1) % players.length);
-    toast(`${players[(currentPlayer + 1) % players.length].name}'s turn`);
   };
 
   const renderPlayerCards = (playerIndex: number) => {
