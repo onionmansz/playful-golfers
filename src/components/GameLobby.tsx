@@ -45,6 +45,11 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
   };
 
   const createGame = async () => {
+    if (!showGames) {
+      toast.error('Please enter your name first');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('game_rooms')
@@ -53,7 +58,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
           game_state: {
             players: [{
               name: playerName,
-              ready: true // Set ready to true by default
+              ready: true
             }]
           }
         }])
@@ -71,6 +76,11 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
   };
 
   const joinGame = async (gameId: string) => {
+    if (!showGames) {
+      toast.error('Please enter your name first');
+      return;
+    }
+
     try {
       const { data: currentGame } = await supabase
         .from('game_rooms')
@@ -91,7 +101,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
         return;
       }
 
-      const updatedPlayers = [...players, { name: playerName, ready: true }]; // Set ready to true by default
+      const updatedPlayers = [...players, { name: playerName, ready: true }];
 
       const { error } = await supabase
         .from('game_rooms')
@@ -182,7 +192,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
                 <div className="text-cream">
                   <p className="font-semibold">Game #{game.id.slice(0, 8)}</p>
                   <p className="text-sm text-cream/80">
-                    Players: {players.length}/2
+                    Players: {players.map(p => p.name).join(', ')} ({players.length}/2)
                   </p>
                   <p className="text-sm text-cream/80">Status: {game.status}</p>
                 </div>
