@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
-export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void }) => {
+interface GameLobbyProps {
+  onJoinGame: (gameId: string) => void;
+  playerName: string;
+}
+
+export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
   const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +55,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
           status: 'waiting',
           game_state: {
             players: [{
-              name: 'Player 1',
+              name: playerName,
               ready: true
             }]
           }
@@ -89,7 +94,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
         return;
       }
 
-      const updatedPlayers = [...players, { name: 'Player 2', ready: true }];
+      const updatedPlayers = [...players, { name: playerName, ready: true }];
 
       const { error } = await supabase
         .from('game_rooms')
@@ -121,7 +126,10 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
     <div className="min-h-screen bg-green-700 p-4">
       <div className="container mx-auto max-w-4xl">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-cream">Game Lobby</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-cream">Game Lobby</h1>
+            <p className="text-cream/80">Playing as: {playerName}</p>
+          </div>
           <Button 
             onClick={createGame}
             className="bg-gold hover:bg-gold/90 text-black"
