@@ -2,6 +2,14 @@ import React, { useState, useEffect } from "react";
 import PlayingCard from "./PlayingCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type Card = {
   rank: string;
@@ -315,6 +323,52 @@ const GameBoard = () => {
     );
   };
 
+  const renderScoringTable = () => {
+    return (
+      <div className="mb-8 bg-cream/10 p-6 rounded-lg">
+        <h2 className="text-2xl font-bold text-cream mb-4">Scoring Guide</h2>
+        <Table className="text-cream">
+          <TableHeader>
+            <TableRow className="hover:bg-cream/5">
+              <TableHead className="text-cream">Card</TableHead>
+              <TableHead className="text-cream">Value/Rule</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>King (K)</TableCell>
+              <TableCell>0 points</TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>Queen (Q), Jack (J)</TableCell>
+              <TableCell>10 points</TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>Ace (A)</TableCell>
+              <TableCell>1 point</TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>Five (5)</TableCell>
+              <TableCell>-5 points</TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>Other Numbers</TableCell>
+              <TableCell>Face value</TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>Matching Column</TableCell>
+              <TableCell>Cards become 0 points</TableCell>
+            </TableRow>
+            <TableRow className="hover:bg-cream/5">
+              <TableCell>2x2 Square Match</TableCell>
+              <TableCell>-10 points bonus</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
@@ -340,6 +394,9 @@ const GameBoard = () => {
                 Restart Game
               </Button>
             </div>
+
+            {/* Scoring Table */}
+            {renderScoringTable()}
 
             {/* Player 2's hand */}
             <div className="mb-12">
