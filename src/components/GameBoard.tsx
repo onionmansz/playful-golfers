@@ -369,10 +369,18 @@ const GameBoard = () => {
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
     setSelectedCard(null);
-    setHasDrawnAndDiscarded(true); // Set this flag when discarding
+    setHasDrawnAndDiscarded(true);
     
-    // If only one card is face down, discarding ends the turn
+    // If only one card is face down, allow player to either flip it or end their turn
     if (faceDownCards === 1) {
+      setCanFlipCard(true);
+      toast("You can either flip your last card or end your turn", {
+        action: {
+          label: "End Turn",
+          onClick: () => nextTurn()
+        },
+      });
+    } else {
       nextTurn();
     }
   };
