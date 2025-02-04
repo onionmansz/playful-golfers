@@ -277,21 +277,14 @@ const GameBoard = () => {
     const clickedPlayerIndex = index < 6 ? 0 : 1;
     const adjustedIndex = clickedPlayerIndex === 1 ? index - 6 : index;
 
-    // Prevent clicking other player's cards during their turn
-    if (!initialFlipsRemaining.some(flips => flips > 0) && clickedPlayerIndex !== currentPlayer) {
-      toast(`It's ${players[currentPlayer].name}'s turn!`);
-      return;
-    }
-
-    // Handle initial card flips
+    // During initial flips phase
     if (initialFlipsRemaining[currentPlayer] > 0) {
-      const currentPlayerCards = [...players[currentPlayer].cards];
-      
-      // Check if this card belongs to the current player
+      // If clicking opponent's cards during initial phase, silently ignore
       if (clickedPlayerIndex !== currentPlayer) {
-        toast(`${players[currentPlayer].name} must flip their own cards!`);
         return;
       }
+
+      const currentPlayerCards = [...players[currentPlayer].cards];
       
       // Check if this card is already face up
       if (currentPlayerCards[adjustedIndex].faceUp) {
