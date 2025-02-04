@@ -167,6 +167,26 @@ const GameBoard = () => {
       player.cards.every(card => card.faceUp)
     );
     
+    // Check if one player has revealed all their cards
+    const playerWithAllCardsRevealed = players.findIndex(player => 
+      player.cards.every(card => card.faceUp)
+    );
+
+    if (playerWithAllCardsRevealed !== -1) {
+      const otherPlayer = (playerWithAllCardsRevealed + 1) % 2;
+      
+      // If the other player has had their final turn, flip all their remaining cards
+      if (players[otherPlayer].cards.some(card => !card.faceUp)) {
+        const updatedPlayers = [...players];
+        updatedPlayers[otherPlayer].cards = updatedPlayers[otherPlayer].cards.map(card => ({
+          ...card,
+          faceUp: true
+        }));
+        setPlayers(updatedPlayers);
+        setGameEnded(true);
+      }
+    }
+    
     if (allCardsVisible) {
       setGameEnded(true);
       
@@ -547,9 +567,11 @@ const GameBoard = () => {
 
             {/* Current player indicator */}
             <div className="text-center text-cream text-2xl mt-8">
-              {initialFlipsRemaining.some(flips => flips > 0) 
-                ? `${players[currentPlayer]?.name} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
-                : `${players[currentPlayer]?.name}'s Turn`}
+              {gameEnded 
+                ? "Game Over!"
+                : initialFlipsRemaining.some(flips => flips > 0) 
+                  ? `${players[currentPlayer]?.name} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
+                  : `${players[currentPlayer]?.name}'s Turn`}
             </div>
           </div>
         )}
