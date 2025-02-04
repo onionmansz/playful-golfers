@@ -74,8 +74,46 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
         setCanFlipCard(gameState.canFlipCard || false);
         setSelectedCard(gameState.selectedCard || null);
         setFinalTurnPlayer(gameState.finalTurnPlayer || null);
-        setIsLoading(false);
+      } else {
+        // Initialize new offline game
+        const initialDeck = shuffleArray(createDeck());
+        const player1Cards = initialDeck.slice(0, 4);
+        const player2Cards = initialDeck.slice(4, 8);
+        const remainingDeck = initialDeck.slice(8);
+        const firstDiscardCard = remainingDeck.pop();
+
+        if (firstDiscardCard) {
+          firstDiscardCard.faceUp = true;
+          const initialPlayers = [
+            { name: "Player 1", cards: player1Cards, ready: true },
+            { name: "Player 2", cards: player2Cards, ready: true }
+          ];
+
+          setPlayers(initialPlayers);
+          setDeck(remainingDeck);
+          setDiscardPile([firstDiscardCard]);
+          setGameStarted(true);
+          setCurrentPlayer(0);
+          setCanFlipCard(true);
+
+          // Save initial state to localStorage
+          const initialState = {
+            players: initialPlayers,
+            deck: remainingDeck,
+            discardPile: [firstDiscardCard],
+            gameStarted: true,
+            currentPlayer: 0,
+            drawnCard: null,
+            initialFlipsRemaining: [2, 2],
+            canFlipCard: true,
+            selectedCard: null,
+            finalTurnPlayer: null,
+            isOffline: true
+          };
+          localStorage.setItem(gameId, JSON.stringify(initialState));
+        }
       }
+      setIsLoading(false);
       return;
     }
 
@@ -148,37 +186,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       supabase.removeChannel(channel);
     };
   }, [gameId]);
-
-  useEffect(() => {
-    if (gameId?.startsWith('offline-')) {
-      const gameState = {
-        players,
-        deck,
-        discardPile,
-        gameStarted,
-        currentPlayer,
-        drawnCard,
-        initialFlipsRemaining,
-        canFlipCard,
-        selectedCard,
-        finalTurnPlayer,
-        isOffline: true
-      };
-      localStorage.setItem(gameId, JSON.stringify(gameState));
-    }
-  }, [
-    gameId,
-    players,
-    deck,
-    discardPile,
-    gameStarted,
-    currentPlayer,
-    drawnCard,
-    initialFlipsRemaining,
-    canFlipCard,
-    selectedCard,
-    finalTurnPlayer,
-  ]);
 
   const startGame = async () => {
     const shuffledDeck = shuffleArray(createDeck());
