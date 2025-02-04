@@ -27,8 +27,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
   useEffect(() => {
     fetchGames();
-    const subscription = supabase
-      .channel('public:game_rooms')
+    const channel = supabase
+      .channel('game_rooms')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -39,7 +39,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -88,6 +88,52 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     }
   };
 
+  const joinGame = async (gameId: string) => {
+    try {
+      const { data: currentGame } = await supabase
+        .from('game_rooms')
+        .select('game_state')
+        .eq('id', gameId)
+        .single();
+
+      if (!currentGame) {
+        toast.error('Game not found');
+        return;
+      }
+
+      const gameState = currentGame.game_state || {};
+      const players = gameState.players || [];
+
+      if (players.length >= 2) {
+        toast.error('Game is full');
+        return;
+      }
+
+      if (players.some((p: Player) => p.name === playerName)) {
+        toast.error('You are already in this game');
+        return;
+      }
+
+      const updatedPlayers = [...players, { name: playerName, ready: false }];
+
+      const { error } = await supabase
+        .from('game_rooms')
+        .update({ 
+          game_state: {
+            ...gameState,
+            players: updatedPlayers
+          }
+        })
+        .eq('id', gameId);
+
+      if (error) throw error;
+      onJoinGame(gameId);
+    } catch (error) {
+      console.error('Error joining game:', error);
+      toast.error('Failed to join game');
+    }
+  };
+
   const toggleReady = async (gameId: string) => {
     try {
       const { data: currentGame } = await supabase
@@ -125,54 +171,12 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
       if (error) throw error;
 
-      // If all players are ready, join the game
       if (players.every((p: Player) => p.ready)) {
         onJoinGame(gameId);
       }
     } catch (error) {
       console.error('Error toggling ready state:', error);
       toast.error('Failed to update ready state');
-    }
-  };
-
-  const joinGame = async (gameId: string) => {
-    try {
-      const { data: currentGame } = await supabase
-        .from('game_rooms')
-        .select('game_state')
-        .eq('id', gameId)
-        .single();
-
-      if (!currentGame) {
-        toast.error('Game not found');
-        return;
-      }
-
-      const gameState = currentGame.game_state || {};
-      const players = gameState.players || [];
-
-      if (players.length >= 2) {
-        toast.error('Game is full');
-        return;
-      }
-
-      const updatedPlayers = [...players, { name: playerName, ready: false }];
-
-      const { error } = await supabase
-        .from('game_rooms')
-        .update({ 
-          game_state: {
-            ...gameState,
-            players: updatedPlayers
-          }
-        })
-        .eq('id', gameId);
-
-      if (error) throw error;
-      onJoinGame(gameId);
-    } catch (error) {
-      console.error('Error joining game:', error);
-      toast.error('Failed to join game');
     }
   };
 
@@ -214,7 +218,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
               {games.map((game) => {
                 const players = game.game_state?.players || [];
                 const currentPlayer = players.find((p: Player) => p.name === playerName);
-                const isInGame = currentPlayer !== undefined;
+                const isInGame = Boolean(currentPlayer);
                 
                 return (
                   <TableRow key={game.id}>
@@ -233,7 +237,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       {game.status}
                     </TableCell>
                     <TableCell>
-                      {game.status === 'waiting' && !isInGame && players.length < 2 && (
+                      {!isInGame && game.status === 'waiting' && players.length < 2 && (
                         <Button 
                           onClick={() => joinGame(game.id)}
                           className="bg-gold hover:bg-gold/90 text-black"
