@@ -66,7 +66,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     const player2Cards = initialDeck.slice(4, 8);
     const remainingDeck = initialDeck.slice(8);
     
-    // Make sure we have enough cards for the first discard
     if (remainingDeck.length === 0) {
       console.error('Not enough cards to initialize game');
       return;
@@ -84,13 +83,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       { name: "Player 2", cards: player2Cards, ready: true }
     ];
 
-    setPlayers(initialPlayers);
-    setDeck(remainingDeck);
-    setDiscardPile([firstDiscardCard]);
-    setGameStarted(true);
-    setCurrentPlayer(0);
-    setCanFlipCard(true);
-
     const initialState = {
       players: initialPlayers,
       deck: remainingDeck,
@@ -103,6 +95,13 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       selectedCard: null,
       finalTurnPlayer: null,
     };
+
+    setPlayers(initialPlayers);
+    setDeck(remainingDeck);
+    setDiscardPile([firstDiscardCard]);
+    setGameStarted(true);
+    setCurrentPlayer(0);
+    setCanFlipCard(true);
     
     try {
       localStorage.setItem(gameId!, JSON.stringify(initialState));
@@ -327,6 +326,8 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     }, 0);
   };
 
+  const topDiscardCard = discardPile.length > 0 ? discardPile[discardPile.length - 1] : null;
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
@@ -453,10 +454,10 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
                       suit={drawnCard.suit}
                       faceUp={true}
                     />
-                  ) : discardPile.length > 0 ? (
+                  ) : topDiscardCard ? (
                     <PlayingCard
-                      rank={discardPile[discardPile.length - 1].rank}
-                      suit={discardPile[discardPile.length - 1].suit}
+                      rank={topDiscardCard.rank}
+                      suit={topDiscardCard.suit}
                       faceUp={true}
                     />
                   ) : null}
