@@ -117,10 +117,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      if (data) {
-        console.log('Created game:', data);
-        onJoinGame(data.id);
-      }
+      console.log('Created game:', data);
+      onJoinGame(data.id);
     } catch (error) {
       console.error('Error in createGame:', error);
       toast.error('Failed to create game');
@@ -187,7 +185,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      console.log('Joined game, updated state:', updatedGameState);
+      console.log('Joined game:', updatedGameState);
       onJoinGame(gameId);
     } catch (error) {
       console.error('Error in joinGame:', error);
@@ -226,7 +224,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
       players[playerIndex].ready = !players[playerIndex].ready;
       const allReady = players.length === 2 && players.every((p: Player) => p.ready);
-      
+
       const updatedGameState = {
         ...gameState,
         players,
@@ -246,8 +244,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         toast.error('Failed to update ready state');
         return;
       }
-      
-      console.log('Updated ready state:', updatedGameState);
+
       if (allReady) {
         onJoinGame(gameId);
       }
