@@ -167,7 +167,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .from('game_rooms')
         .update({ 
           game_state: updatedGameState,
-          player2_id: player2Id
+          player2_id: player2Id,
+          status: 'waiting'
         })
         .eq('id', gameId);
 
