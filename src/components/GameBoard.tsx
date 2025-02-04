@@ -265,6 +265,13 @@ const GameBoard = () => {
   };
 
   const handleCardClick = (index: number) => {
+    // Prevent clicking other player's cards during their turn
+    const clickedPlayerIndex = index < 6 ? 0 : 1;
+    if (!initialFlipsRemaining.some(flips => flips > 0) && clickedPlayerIndex !== currentPlayer) {
+      toast(`It's ${players[currentPlayer].name}'s turn!`);
+      return;
+    }
+
     // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
       const currentPlayerCards = [...players[currentPlayer].cards];
@@ -662,8 +669,17 @@ const GameBoard = () => {
               {renderPlayerCards(1)}
             </div>
 
-            {/* Middle section with deck and discard pile */}
-            <div className="flex justify-center gap-16 my-12">
+            {/* Middle section with status, deck and discard pile */}
+            <div className="flex items-center justify-center gap-16 my-12">
+              {/* Current player indicator */}
+              <div className="text-center text-cream text-2xl">
+                {gameEnded 
+                  ? "Game Over!"
+                  : initialFlipsRemaining.some(flips => flips > 0) 
+                    ? `${players[currentPlayer]?.name} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
+                    : `${players[currentPlayer]?.name}'s Turn`}
+              </div>
+
               <div className="flex flex-col items-center gap-2">
                 <div 
                   onClick={() => drawCard(false)}
@@ -725,15 +741,6 @@ const GameBoard = () => {
             {/* Player 1's hand */}
             <div className="mt-12">
               {renderPlayerCards(0)}
-            </div>
-
-            {/* Current player indicator */}
-            <div className="text-center text-cream text-2xl mt-8">
-              {gameEnded 
-                ? "Game Over!"
-                : initialFlipsRemaining.some(flips => flips > 0) 
-                  ? `${players[currentPlayer]?.name} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
-                  : `${players[currentPlayer]?.name}'s Turn`}
             </div>
 
             {/* Final Scores */}
