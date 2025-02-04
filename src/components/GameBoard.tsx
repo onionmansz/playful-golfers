@@ -276,6 +276,12 @@ const GameBoard = () => {
   }, [players, gameStarted]);
 
   const drawCard = (fromDiscard: boolean = false) => {
+    // Add check for final turn completion
+    if (finalTurnDelay) {
+      toast("Game is ending...");
+      return;
+    }
+
     if (initialFlipsRemaining.some(flips => flips > 0)) {
       toast("Both players must flip two cards before drawing!");
       return;
@@ -306,7 +312,7 @@ const GameBoard = () => {
     if (fromDiscard) {
       drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
-      setSelectedCard('drawn'); // Changed this line to always set to 'drawn' when a card is picked up
+      setSelectedCard('drawn');
     } else {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
@@ -319,6 +325,12 @@ const GameBoard = () => {
   };
 
   const handleCardClick = (index: number) => {
+    // Add check for final turn completion
+    if (finalTurnDelay) {
+      toast("Game is ending...");
+      return;
+    }
+
     // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
       const currentPlayerCards = [...players[currentPlayer].cards];
@@ -410,6 +422,12 @@ const GameBoard = () => {
   };
 
   const discardDrawnCard = () => {
+    // Add check for final turn completion
+    if (finalTurnDelay) {
+      toast("Game is ending...");
+      return;
+    }
+
     if (!drawnCard) return;
     
     const currentPlayerCards = players[currentPlayer].cards;
