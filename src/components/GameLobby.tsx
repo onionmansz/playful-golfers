@@ -67,6 +67,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
+      console.log('Fetched games:', data);
       setGames(data || []);
       setLoading(false);
     } catch (error) {
@@ -116,6 +117,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
+      console.log('Created game:', data);
       onJoinGame(data.id);
     } catch (error) {
       console.error('Error in createGame:', error);
@@ -137,6 +139,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
+      console.log('Joining game:', currentGame);
       const gameState = currentGame.game_state;
       const players = gameState?.players || [];
 
@@ -178,6 +181,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
+      console.log('Successfully joined game');
       onJoinGame(gameId);
     } catch (error) {
       console.error('Error in joinGame:', error);
@@ -199,6 +203,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
+      console.log('Current game state:', currentGame);
       const gameState = currentGame.game_state;
       const players = [...(gameState?.players || [])];
       const playerIndex = players.findIndex((p: Player) => p.name === playerName);
@@ -231,6 +236,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
+      console.log('Successfully updated ready state');
       if (allReady) {
         onJoinGame(gameId);
       }
