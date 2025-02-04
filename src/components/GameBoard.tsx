@@ -43,6 +43,7 @@ const GameBoard = () => {
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [drawnCard, setDrawnCard] = useState<Card | null>(null);
+  const [initialFlipsRemaining, setInitialFlipsRemaining] = useState<number[]>([2, 2]);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -61,8 +62,9 @@ const GameBoard = () => {
     setGameStarted(true);
     setCurrentPlayer(0);
     setDrawnCard(null);
+    setInitialFlipsRemaining([2, 2]);
     
-    toast("Game started! Player 1's turn");
+    toast("Game started! Each player must flip two cards");
   };
 
   const restartGame = () => {
@@ -72,10 +74,16 @@ const GameBoard = () => {
     setPlayers([]);
     setCurrentPlayer(0);
     setDrawnCard(null);
+    setInitialFlipsRemaining([2, 2]);
     toast("Game reset! Click Start Game to begin a new game");
   };
 
   const drawCard = (fromDiscard: boolean = false) => {
+    if (initialFlipsRemaining.some(flips => flips > 0)) {
+      toast("Both players must flip two cards before drawing!");
+      return;
+    }
+
     if (drawnCard) {
       toast("You already have a drawn card!");
       return;
@@ -111,11 +119,42 @@ const GameBoard = () => {
   };
 
   const handleCardClick = (index: number) => {
+    // Handle initial card flips
+    if (initialFlipsRemaining[currentPlayer] > 0) {
+      const currentPlayerCards = [...players[currentPlayer].cards];
+      currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
+      
+      setPlayers(prevPlayers => {
+        const newPlayers = [...prevPlayers];
+        newPlayers[currentPlayer] = {
+          ...newPlayers[currentPlayer],
+          cards: currentPlayerCards,
+        };
+        return newPlayers;
+      });
+
+      setInitialFlipsRemaining(prev => {
+        const newFlips = [...prev];
+        newFlips[currentPlayer]--;
+        return newFlips;
+      });
+
+      if (initialFlipsRemaining[currentPlayer] === 1) {
+        setCurrentPlayer((prev) => (prev + 1) % players.length);
+        toast(`${players[(currentPlayer + 1) % players.length].name} must flip two cards`);
+      } else if (initialFlipsRemaining[currentPlayer] === 0 && initialFlipsRemaining[(currentPlayer + 1) % 2] === 0) {
+        toast("Initial flips complete! Game can now begin - Player 1's turn");
+        setCurrentPlayer(0);
+      }
+      return;
+    }
+
+    // Handle regular card swaps during gameplay
     if (!drawnCard) return;
 
     const currentPlayerCards = [...players[currentPlayer].cards];
     const oldCard = currentPlayerCards[index];
-    currentPlayerCards[index] = drawnCard; // The drawn card stays face up when placed
+    currentPlayerCards[index] = drawnCard;
     
     setPlayers(prevPlayers => {
       const newPlayers = [...prevPlayers];
@@ -254,7 +293,9 @@ const GameBoard = () => {
 
             {/* Current player indicator */}
             <div className="text-center text-cream text-2xl mt-8">
-              {players[currentPlayer]?.name}'s Turn
+              {initialFlipsRemaining.some(flips => flips > 0) 
+                ? `${players[currentPlayer]?.name} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
+                : `${players[currentPlayer]?.name}'s Turn`}
             </div>
           </div>
         )}
