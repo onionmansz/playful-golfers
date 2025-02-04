@@ -101,8 +101,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       isOffline: true
     };
 
-    onJoinGame(offlineGameId);
     localStorage.setItem(offlineGameId, JSON.stringify(initialGameState));
+    onJoinGame(offlineGameId);
   };
 
   const createGame = async () => {
@@ -273,14 +273,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       toast.error('Failed to update ready state');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-green-700 flex items-center justify-center">
-        <div className="text-center text-cream p-4">Loading games...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-green-700 p-4">
