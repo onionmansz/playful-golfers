@@ -75,7 +75,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
   const createGame = async () => {
     try {
-      // Create a random UUID for the player
       const playerId = crypto.randomUUID();
 
       const initialGameState = {
@@ -132,7 +131,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      const gameState = currentGame.game_state || {};
+      const gameState = currentGame.game_state;
       const players = gameState.players || [];
 
       if (players.length >= 2) {
@@ -145,7 +144,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      // Create a random UUID for the second player
       const player2Id = crypto.randomUUID();
 
       const updatedPlayers = [...players, {
@@ -191,7 +189,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       }
 
       const gameState = currentGame.game_state;
-      const players = [...gameState.players];
+      const players = [...(gameState.players || [])];
       const playerIndex = players.findIndex((p: Player) => p.name === playerName);
 
       if (playerIndex === -1) {
@@ -202,8 +200,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       // Toggle the ready state for the current player
       players[playerIndex].ready = !players[playerIndex].ready;
       
-      // Check if all players are ready
-      const allReady = players.every((p: Player) => p.ready);
+      // Check if all players are ready and there are 2 players
+      const allReady = players.length === 2 && players.every((p: Player) => p.ready);
       
       // Update the game state
       const updatedGameState = {
@@ -320,4 +318,3 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     </div>
   );
 };
-
