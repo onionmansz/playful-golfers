@@ -496,14 +496,14 @@ const GameBoard = () => {
       detailedScores[0] : detailedScores[1];
 
     return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-        <div className="bg-cream/95 p-8 rounded-lg max-w-xl w-full mx-4 space-y-6">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-cream/90 p-8 rounded-lg max-w-xl w-full mx-4 space-y-6 shadow-xl">
           <h2 className="text-3xl font-bold text-center text-black">
             Game Over! {winningPlayer.name} Wins!
           </h2>
           <div className="space-y-8">
             {detailedScores.map((score, index) => (
-              <div key={index} className={`p-6 rounded-lg ${score === winningPlayer ? 'bg-gold/20' : 'bg-black/10'}`}>
+              <div key={index} className={`p-6 rounded-lg ${score === winningPlayer ? 'bg-gold/30' : 'bg-black/20'}`}>
                 <h3 className="text-xl font-bold mb-4">{score.name}</h3>
                 <Table>
                   <TableBody>
