@@ -92,11 +92,16 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         gameEnded: false
       };
 
+      // Create a random UUID for the player
+      const playerId = crypto.randomUUID();
+
       const { data, error } = await supabase
         .from('game_rooms')
         .insert([{ 
           status: 'waiting',
-          game_state: initialGameState
+          game_state: initialGameState,
+          player1_id: playerId,
+          current_player_id: playerId
         }])
         .select()
         .single();
@@ -144,10 +149,14 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         players: updatedPlayers
       };
 
+      // Create a random UUID for the second player
+      const player2Id = crypto.randomUUID();
+
       const { error } = await supabase
         .from('game_rooms')
         .update({ 
-          game_state: updatedGameState
+          game_state: updatedGameState,
+          player2_id: player2Id
         })
         .eq('id', gameId);
 
