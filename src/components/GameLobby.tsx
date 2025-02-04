@@ -181,7 +181,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     try {
       const { data: currentGame } = await supabase
         .from('game_rooms')
-        .select('game_state')
+        .select('*')
         .eq('id', gameId)
         .single();
 
@@ -190,8 +190,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      const gameState = currentGame.game_state || {};
-      const players = gameState.players || [];
+      const gameState = currentGame.game_state;
+      const players = [...gameState.players];
       const playerIndex = players.findIndex((p: Player) => p.name === playerName);
 
       if (playerIndex === -1) {
@@ -199,24 +199,30 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
+      // Toggle the ready state for the current player
       players[playerIndex].ready = !players[playerIndex].ready;
+      
+      // Check if all players are ready
       const allReady = players.every((p: Player) => p.ready);
+      
+      // Update the game state
+      const updatedGameState = {
+        ...gameState,
+        players,
+        gameStarted: allReady
+      };
 
       const { error } = await supabase
         .from('game_rooms')
         .update({ 
-          game_state: {
-            ...gameState,
-            players,
-            gameStarted: allReady
-          },
+          game_state: updatedGameState,
           status: allReady ? 'playing' : 'waiting'
         })
         .eq('id', gameId);
 
       if (error) throw error;
-      console.log('Updated ready state, all ready:', allReady);
-
+      
+      console.log('Updated ready state:', updatedGameState);
       if (allReady) {
         onJoinGame(gameId);
       }
@@ -273,7 +279,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       Game #{game.id.slice(0, 8)}
                     </TableCell>
                     <TableCell className="text-cream">
-                      {players.map((p: Player, index: number) => (
+                      {players.map((p: Player) => (
                         <div key={p.name} className="flex items-center gap-2">
                           {p.name} {p.ready ? '✅' : '⏳'}
                         </div>
@@ -314,3 +320,4 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     </div>
   );
 };
+
