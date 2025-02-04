@@ -348,35 +348,44 @@ const GameBoard = () => {
 
             {/* Middle section with deck and discard pile */}
             <div className="flex justify-center gap-16 my-12">
-              <div 
-                onClick={() => drawCard(false)}
-                className="cursor-pointer"
-              >
-                <PlayingCard
-                  rank=""
-                  suit=""
-                  faceUp={false}
-                />
-              </div>
-              {discardPile.length > 0 && (
+              <div className="flex flex-col items-center gap-2">
                 <div 
-                  onClick={() => drawCard(true)}
+                  onClick={() => drawCard(false)}
                   className="cursor-pointer"
                 >
                   <PlayingCard
-                    rank={discardPile[discardPile.length - 1].rank}
-                    suit={discardPile[discardPile.length - 1].suit}
-                    faceUp={true}
+                    rank=""
+                    suit=""
+                    faceUp={false}
                   />
                 </div>
+                <span className="text-cream text-lg font-medium">Main Deck</span>
+              </div>
+              
+              {discardPile.length > 0 && (
+                <div className="flex flex-col items-center gap-2">
+                  <div 
+                    onClick={() => drawCard(true)}
+                    className="cursor-pointer"
+                  >
+                    <PlayingCard
+                      rank={discardPile[discardPile.length - 1].rank}
+                      suit={discardPile[discardPile.length - 1].suit}
+                      faceUp={true}
+                    />
+                  </div>
+                  <span className="text-cream text-lg font-medium">Discard Pile</span>
+                </div>
               )}
+              
               {drawnCard && (
-                <div className="flex flex-col gap-4 items-center">
+                <div className="flex flex-col items-center gap-2">
                   <PlayingCard
                     rank={drawnCard.rank}
                     suit={drawnCard.suit}
                     faceUp={true}
                   />
+                  <span className="text-cream text-lg font-medium">Picked Up</span>
                   <Button 
                     onClick={discardDrawnCard}
                     variant="destructive"
