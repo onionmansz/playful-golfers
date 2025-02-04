@@ -374,12 +374,7 @@ const GameBoard = () => {
     // If only one card is face down, allow player to either flip it or end their turn
     if (faceDownCards === 1) {
       setCanFlipCard(true);
-      toast("You can either flip your last card or end your turn", {
-        action: {
-          label: "End Turn",
-          onClick: () => nextTurn()
-        },
-      });
+      toast("You can either flip your last card or end your turn");
     } else {
       nextTurn();
     }
