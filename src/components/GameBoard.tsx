@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import PlayingCard from "./PlayingCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -187,7 +187,7 @@ const GameBoard = () => {
     if (fromDiscard) {
       drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
-      setSelectedCard('discard');
+      setSelectedCard('drawn'); // Changed this line to always set to 'drawn' when a card is picked up
     } else {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
