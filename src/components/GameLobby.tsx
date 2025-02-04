@@ -28,14 +28,14 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
       const { data, error } = await supabase
         .from('game_rooms')
         .select('*')
-        .eq('status', 'waiting');
-      
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
       setGames(data || []);
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
       setLoading(false);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      toast.error('Failed to fetch games');
     }
   };
 
@@ -51,8 +51,9 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
       if (error) throw error;
       if (data) onJoinGame(data.id);
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      console.error('Error creating game:', error);
+      toast.error('Failed to create game');
     }
   };
 
@@ -68,48 +69,41 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
       if (error) throw error;
       onJoinGame(gameId);
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      console.error('Error joining game:', error);
+      toast.error('Failed to join game');
     }
   };
 
+  if (loading) {
+    return <div className="text-center p-4">Loading games...</div>;
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-table p-4">
-      <div className="w-full max-w-2xl space-y-8 bg-cream/5 p-8 rounded-lg backdrop-blur-sm border border-cream/10">
-        <h2 className="text-3xl font-bold text-center text-cream">Game Lobby</h2>
-        <div className="flex justify-center">
-          <Button
-            onClick={createGame}
-            className="bg-gold hover:bg-gold/90 text-black px-8 py-6 text-xl"
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Game Lobby</h1>
+        <Button onClick={createGame}>Create New Game</Button>
+      </div>
+
+      <div className="grid gap-4">
+        {games.map((game) => (
+          <div
+            key={game.id}
+            className="border p-4 rounded-lg flex justify-between items-center"
           >
-            Create New Game
-          </Button>
-        </div>
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-cream">Available Games</h3>
-          {loading ? (
-            <p className="text-cream text-center">Loading games...</p>
-          ) : games.length === 0 ? (
-            <p className="text-cream text-center">No games available</p>
-          ) : (
-            <div className="grid gap-4">
-              {games.map((game) => (
-                <div
-                  key={game.id}
-                  className="flex justify-between items-center bg-cream/5 p-4 rounded-lg border border-cream/10"
-                >
-                  <span className="text-cream">Game #{game.id.slice(0, 8)}</span>
-                  <Button
-                    onClick={() => joinGame(game.id)}
-                    className="bg-gold hover:bg-gold/90 text-black"
-                  >
-                    Join Game
-                  </Button>
-                </div>
-              ))}
+            <div>
+              <p className="font-semibold">Game #{game.id.slice(0, 8)}</p>
+              <p className="text-sm text-gray-500">Status: {game.status}</p>
             </div>
-          )}
-        </div>
+            {game.status === 'waiting' && (
+              <Button onClick={() => joinGame(game.id)}>Join Game</Button>
+            )}
+          </div>
+        ))}
+        {games.length === 0 && (
+          <p className="text-center text-gray-500">No games available. Create one!</p>
+        )}
       </div>
     </div>
   );

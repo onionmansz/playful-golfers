@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
 
 type Card = {
   rank: string;
@@ -144,6 +145,45 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     { name: "", ready: false },
     { name: "", ready: false }
   ]);
+
+  useEffect(() => {
+    if (gameId) {
+      const channel = supabase
+        .channel('game_presence')
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const players = Object.values(state).flat() as any[];
+          
+          setPlayerSetup(prev => {
+            const newSetup = [...prev];
+            players.forEach((player, index) => {
+              if (index < 2) {
+                newSetup[index] = {
+                  name: player.name || '',
+                  ready: player.ready || false
+                };
+              }
+            });
+            return newSetup;
+          });
+        })
+        .subscribe();
+
+      // Track this player's state
+      const trackPresence = async () => {
+        await channel.track({
+          name: playerSetup[currentPlayer].name,
+          ready: playerSetup[currentPlayer].ready
+        });
+      };
+
+      trackPresence();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [gameId, playerSetup[currentPlayer].name, playerSetup[currentPlayer].ready]);
 
   const handleNameChange = (index: number, name: string) => {
     setPlayerSetup(prev => {
