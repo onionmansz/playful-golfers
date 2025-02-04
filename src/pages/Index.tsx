@@ -1,7 +1,11 @@
 import GameBoard from "@/components/GameBoard";
 
-const Index = () => {
-  return <GameBoard />;
+interface IndexProps {
+  gameId: string;
+}
+
+const Index = ({ gameId }: IndexProps) => {
+  return <GameBoard gameId={gameId} />;
 };
 
 export default Index;
