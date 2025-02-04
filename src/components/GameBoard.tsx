@@ -276,9 +276,11 @@ const GameBoard = () => {
   }, [players, gameStarted]);
 
   const isGameEnding = () => {
+    // Only block actions when:
+    // 1. We're in the final turn delay (waiting to reveal cards), OR
+    // 2. It's after the final turn (finalTurnPlayer is set AND it's not their turn anymore)
     return finalTurnDelay || 
-           (finalTurnPlayer !== null && currentPlayer === finalTurnPlayer && 
-            players[finalTurnPlayer].cards.some(card => !card.faceUp));
+           (finalTurnPlayer !== null && currentPlayer !== finalTurnPlayer);
   };
 
   const drawCard = (fromDiscard: boolean = false) => {
