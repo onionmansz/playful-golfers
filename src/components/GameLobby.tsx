@@ -41,17 +41,11 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
   const createGame = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       const { data, error } = await supabase
         .from('game_rooms')
-        .insert([
-          { 
-            player1_id: user.id,
-            status: 'waiting'
-          }
-        ])
+        .insert([{ 
+          status: 'waiting'
+        }])
         .select()
         .single();
 
@@ -64,15 +58,10 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
   const joinGame = async (gameId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       const { error } = await supabase
         .from('game_rooms')
         .update({ 
-          player2_id: user.id,
-          status: 'playing',
-          current_player_id: user.id
+          status: 'playing'
         })
         .eq('id', gameId)
         .eq('status', 'waiting');
