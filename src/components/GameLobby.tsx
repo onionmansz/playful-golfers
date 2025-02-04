@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -48,7 +47,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -63,20 +61,26 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .gt('created_at', threeMinutesAgo)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching games:', error);
+        toast.error('Failed to fetch games');
+        return;
+      }
+
       console.log('Fetched games:', data);
       setGames(data || []);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching games:', error);
+      console.error('Error in fetchGames:', error);
       toast.error('Failed to fetch games');
+      setLoading(false);
     }
   };
 
   const createGame = async () => {
     try {
       const playerId = crypto.randomUUID();
-
+      
       const initialGameState = {
         players: [{
           id: playerId,
@@ -107,13 +111,18 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating game:', error);
+        toast.error('Failed to create game');
+        return;
+      }
+
       if (data) {
         console.log('Created game:', data);
         onJoinGame(data.id);
       }
     } catch (error) {
-      console.error('Error creating game:', error);
+      console.error('Error in createGame:', error);
       toast.error('Failed to create game');
     }
   };
@@ -124,15 +133,17 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .from('game_rooms')
         .select('*')
         .eq('id', gameId)
-        .single();
+        .maybeSingle();
 
       if (fetchError || !currentGame) {
+        console.error('Error fetching game:', fetchError);
         toast.error('Game not found');
         return;
       }
 
       const gameState = currentGame.game_state;
-      if (!gameState || !gameState.players) {
+      if (!gameState || !Array.isArray(gameState.players)) {
+        console.error('Invalid game state:', gameState);
         toast.error('Invalid game state');
         return;
       }
@@ -150,7 +161,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       }
 
       const player2Id = crypto.randomUUID();
-
       const updatedPlayers = [...players, {
         id: player2Id,
         name: playerName,
@@ -171,11 +181,16 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         })
         .eq('id', gameId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating game:', updateError);
+        toast.error('Failed to join game');
+        return;
+      }
+
       console.log('Joined game, updated state:', updatedGameState);
       onJoinGame(gameId);
     } catch (error) {
-      console.error('Error joining game:', error);
+      console.error('Error in joinGame:', error);
       toast.error('Failed to join game');
     }
   };
@@ -186,14 +201,16 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .from('game_rooms')
         .select('*')
         .eq('id', gameId)
-        .single();
+        .maybeSingle();
 
       if (fetchError || !currentGame) {
+        console.error('Error fetching game:', fetchError);
         toast.error('Game not found');
         return;
       }
 
-      if (!currentGame.game_state || !currentGame.game_state.players) {
+      if (!currentGame.game_state?.players) {
+        console.error('Invalid game state:', currentGame.game_state);
         toast.error('Invalid game state');
         return;
       }
@@ -207,7 +224,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       }
 
       players[playerIndex].ready = !players[playerIndex].ready;
-      
       const allReady = players.length === 2 && players.every((p: Player) => p.ready);
       
       const updatedGameState = {
@@ -224,14 +240,18 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         })
         .eq('id', gameId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating game:', updateError);
+        toast.error('Failed to update ready state');
+        return;
+      }
       
       console.log('Updated ready state:', updatedGameState);
       if (allReady) {
         onJoinGame(gameId);
       }
     } catch (error) {
-      console.error('Error toggling ready state:', error);
+      console.error('Error in toggleReady:', error);
       toast.error('Failed to update ready state');
     }
   };
