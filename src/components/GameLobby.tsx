@@ -209,13 +209,14 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      if (!currentGame.game_state?.players) {
-        console.error('Invalid game state:', currentGame.game_state);
+      const gameState = currentGame.game_state;
+      if (!gameState?.players) {
+        console.error('Invalid game state:', gameState);
         toast.error('Invalid game state');
         return;
       }
 
-      const players = [...currentGame.game_state.players];
+      const players = [...gameState.players];
       const playerIndex = players.findIndex((p: Player) => p.name === playerName);
 
       if (playerIndex === -1) {
@@ -227,7 +228,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       const allReady = players.length === 2 && players.every((p: Player) => p.ready);
       
       const updatedGameState = {
-        ...currentGame.game_state,
+        ...gameState,
         players,
         gameStarted: allReady
       };
@@ -325,10 +326,9 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       {isInGame && !gameStarted && (
                         <Button 
                           onClick={() => toggleReady(game.id)}
-                          variant={currentPlayer?.ready ? "default" : "secondary"}
-                          className={currentPlayer?.ready ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-yellow-500 hover:bg-yellow-600 text-black'}
+                          className={currentPlayer.ready ? 'bg-green-500 hover:opacity-90 text-white' : 'bg-yellow-500 hover:opacity-90 text-black'}
                         >
-                          {currentPlayer?.ready ? 'Ready!' : 'Ready Up'}
+                          {currentPlayer.ready ? 'Ready!' : 'Ready Up'}
                         </Button>
                       )}
                     </TableCell>
