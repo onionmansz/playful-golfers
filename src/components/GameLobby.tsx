@@ -120,19 +120,24 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
   const joinGame = async (gameId: string) => {
     try {
-      const { data: currentGame } = await supabase
+      const { data: currentGame, error: fetchError } = await supabase
         .from('game_rooms')
         .select('*')
         .eq('id', gameId)
         .single();
 
-      if (!currentGame) {
+      if (fetchError || !currentGame) {
         toast.error('Game not found');
         return;
       }
 
       const gameState = currentGame.game_state;
-      const players = gameState.players || [];
+      if (!gameState || !gameState.players) {
+        toast.error('Invalid game state');
+        return;
+      }
+
+      const players = gameState.players;
 
       if (players.length >= 2) {
         toast.error('Game is full');
@@ -158,7 +163,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         players: updatedPlayers
       };
 
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('game_rooms')
         .update({ 
           game_state: updatedGameState,
@@ -166,7 +171,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         })
         .eq('id', gameId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
       console.log('Joined game, updated state:', updatedGameState);
       onJoinGame(gameId);
     } catch (error) {
@@ -177,19 +182,23 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
   const toggleReady = async (gameId: string) => {
     try {
-      const { data: currentGame } = await supabase
+      const { data: currentGame, error: fetchError } = await supabase
         .from('game_rooms')
         .select('*')
         .eq('id', gameId)
         .single();
 
-      if (!currentGame) {
+      if (fetchError || !currentGame) {
         toast.error('Game not found');
         return;
       }
 
-      const gameState = currentGame.game_state;
-      const players = [...(gameState.players || [])];
+      if (!currentGame.game_state || !currentGame.game_state.players) {
+        toast.error('Invalid game state');
+        return;
+      }
+
+      const players = [...currentGame.game_state.players];
       const playerIndex = players.findIndex((p: Player) => p.name === playerName);
 
       if (playerIndex === -1) {
@@ -197,20 +206,17 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      // Toggle the ready state for the current player
       players[playerIndex].ready = !players[playerIndex].ready;
       
-      // Check if all players are ready and there are 2 players
       const allReady = players.length === 2 && players.every((p: Player) => p.ready);
       
-      // Update the game state
       const updatedGameState = {
-        ...gameState,
+        ...currentGame.game_state,
         players,
         gameStarted: allReady
       };
 
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('game_rooms')
         .update({ 
           game_state: updatedGameState,
@@ -218,7 +224,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         })
         .eq('id', gameId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
       
       console.log('Updated ready state:', updatedGameState);
       if (allReady) {
@@ -278,7 +284,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                     </TableCell>
                     <TableCell className="text-cream">
                       {players.map((p: Player) => (
-                        <div key={p.name} className="flex items-center gap-2">
+                        <div key={p.id} className="flex items-center gap-2">
                           {p.name} {p.ready ? '✅' : '⏳'}
                         </div>
                       ))}
