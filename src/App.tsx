@@ -3,32 +3,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState } from "react";
+import { GameLobby } from "./components/GameLobby";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { Auth } from "./components/Auth";
-import { GameLobby } from "./components/GameLobby";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState<any>(null);
   const [gameId, setGameId] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleJoinGame = (gameId: string) => {
     setGameId(gameId);
@@ -40,9 +23,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          {!session ? (
-            <Auth />
-          ) : !gameId ? (
+          {!gameId ? (
             <GameLobby onJoinGame={handleJoinGame} />
           ) : (
             <Routes>
