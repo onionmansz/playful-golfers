@@ -59,8 +59,20 @@ const GameBoard = () => {
     setDiscardPile([{ ...remainingDeck[0], faceUp: true }]);
     setDeck(remainingDeck.slice(1));
     setGameStarted(true);
+    setCurrentPlayer(0);
+    setDrawnCard(null);
     
     toast("Game started! Player 1's turn");
+  };
+
+  const restartGame = () => {
+    setGameStarted(false);
+    setDeck([]);
+    setDiscardPile([]);
+    setPlayers([]);
+    setCurrentPlayer(0);
+    setDrawnCard(null);
+    toast("Game reset! Click Start Game to begin a new game");
   };
 
   const drawCard = (fromDiscard: boolean = false) => {
@@ -178,6 +190,17 @@ const GameBoard = () => {
           </div>
         ) : (
           <div className="space-y-12">
+            {/* Restart button */}
+            <div className="flex justify-end">
+              <Button 
+                onClick={restartGame}
+                variant="destructive"
+                className="mb-4"
+              >
+                Restart Game
+              </Button>
+            </div>
+
             {/* Player 2's hand */}
             <div className="mb-12">
               {renderPlayerCards(1)}
