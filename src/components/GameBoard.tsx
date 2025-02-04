@@ -133,6 +133,7 @@ const GameBoard = () => {
   const [gameEnded, setGameEnded] = useState(false);
   const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
+  const [hasDrawnAndDiscarded, setHasDrawnAndDiscarded] = useState(false);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -229,6 +230,11 @@ const GameBoard = () => {
 
     if (drawnCard) {
       toast("You already have a drawn card!");
+      return;
+    }
+
+    if (hasDrawnAndDiscarded) {
+      toast("You've already drawn and discarded this turn!");
       return;
     }
 
@@ -342,6 +348,7 @@ const GameBoard = () => {
       setDrawnCard(null);
       setSelectedCard(null);
       setCanFlipCard(false);
+      setHasDrawnAndDiscarded(true);
 
       // If this is the final turn player's move
       if (finalTurnPlayer === currentPlayer) {
@@ -453,6 +460,7 @@ const GameBoard = () => {
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
     setSelectedCard(null);
+    setHasDrawnAndDiscarded(true);
     
     // If only one card is face down, discarding ends the turn
     if (faceDownCards === 1) {
@@ -462,6 +470,7 @@ const GameBoard = () => {
 
   const nextTurn = () => {
     setCurrentPlayer((prev) => (prev + 1) % players.length);
+    setHasDrawnAndDiscarded(false);
     toast(`${players[(currentPlayer + 1) % players.length].name}'s turn`);
   };
 
