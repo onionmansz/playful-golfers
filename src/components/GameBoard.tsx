@@ -528,6 +528,116 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     );
   };
 
+  const handleNameChange = (index: number, name: string) => {
+    setPlayerSetup(prev => {
+      const newSetup = [...prev];
+      newSetup[index] = {
+        ...newSetup[index],
+        name: name
+      };
+      return newSetup;
+    });
+  };
+
+  const toggleReady = (index: number) => {
+    setPlayerSetup(prev => {
+      const newSetup = [...prev];
+      newSetup[index] = {
+        ...newSetup[index],
+        ready: !newSetup[index].ready
+      };
+      return newSetup;
+    });
+  };
+
+  const startGame = () => {
+    const newDeck = createDeck();
+    const player1Cards = newDeck.splice(0, 6);
+    const player2Cards = newDeck.splice(0, 6);
+    
+    setPlayers([
+      { name: playerSetup[0].name, cards: player1Cards },
+      { name: playerSetup[1].name, cards: player2Cards }
+    ]);
+    
+    setDeck(newDeck);
+    setGameStarted(true);
+    setCurrentPlayer(0);
+  };
+
+  const restartGame = () => {
+    setDeck(createDeck());
+    setDiscardPile([]);
+    setPlayers([]);
+    setCurrentPlayer(0);
+    setGameStarted(false);
+    setDrawnCard(null);
+    setInitialFlipsRemaining([2, 2]);
+    setCanFlipCard(false);
+    setGameEnded(false);
+    setSelectedCard(null);
+    setFinalTurnPlayer(null);
+    setPlayerSetup([
+      { name: "", ready: false },
+      { name: "", ready: false }
+    ]);
+  };
+
+  const nextTurn = () => {
+    if (gameEnded) return;
+    
+    // Check if all cards are face up for current player
+    const currentPlayerCards = players[currentPlayer].cards;
+    const allCardsRevealed = currentPlayerCards.every(card => card.faceUp);
+    
+    if (allCardsRevealed) {
+      if (finalTurnPlayer === null) {
+        setFinalTurnPlayer(currentPlayer);
+        toast(`${players[currentPlayer].name} has revealed all cards! Final round begins!`);
+      } else if (finalTurnPlayer === currentPlayer) {
+        setGameEnded(true);
+        return;
+      }
+    }
+    
+    setCurrentPlayer((prev) => (prev + 1) % players.length);
+    setDrawnCard(null);
+    setSelectedCard(null);
+    setCanFlipCard(false);
+  };
+
+  const drawCard = (fromDiscard: boolean) => {
+    if (drawnCard) return;
+    
+    if (fromDiscard) {
+      if (discardPile.length === 0) return;
+      const card = discardPile[discardPile.length - 1];
+      setDiscardPile(prev => prev.slice(0, -1));
+      setDrawnCard(card);
+      setSelectedCard('discard');
+    } else {
+      if (deck.length === 0) {
+        // Shuffle discard pile to create new deck
+        if (discardPile.length === 0) {
+          toast.error("No cards left to draw!");
+          return;
+        }
+        const newDeck = shuffle([...discardPile]);
+        setDeck(newDeck.slice(1));
+        setDiscardPile([]);
+        setDrawnCard(newDeck[0]);
+      } else {
+        const [card, ...remainingDeck] = deck;
+        setDeck(remainingDeck);
+        setDrawnCard(card);
+      }
+      setSelectedCard('drawn');
+    }
+    
+    // After drawing, player can either place the card or flip one of their cards
+    setCanFlipCard(true);
+  };
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
