@@ -2,10 +2,23 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface GameLobbyProps {
   onJoinGame: (gameId: string) => void;
   playerName: string;
+}
+
+interface Player {
+  name: string;
+  ready: boolean;
 }
 
 export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
@@ -20,7 +33,9 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         event: '*', 
         schema: 'public', 
         table: 'game_rooms' 
-      }, fetchGames)
+      }, () => {
+        fetchGames();
+      })
       .subscribe();
 
     return () => {
@@ -55,7 +70,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
           status: 'waiting',
           game_state: {
             players: [{
-              name: playerName
+              name: playerName,
+              ready: false
             }]
           }
         }])
@@ -69,6 +85,53 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     } catch (error) {
       console.error('Error creating game:', error);
       toast.error('Failed to create game');
+    }
+  };
+
+  const toggleReady = async (gameId: string) => {
+    try {
+      const { data: currentGame } = await supabase
+        .from('game_rooms')
+        .select('game_state')
+        .eq('id', gameId)
+        .single();
+
+      if (!currentGame) {
+        toast.error('Game not found');
+        return;
+      }
+
+      const gameState = currentGame.game_state || {};
+      const players = gameState.players || [];
+      const playerIndex = players.findIndex((p: Player) => p.name === playerName);
+
+      if (playerIndex === -1) {
+        toast.error('Player not found in game');
+        return;
+      }
+
+      players[playerIndex].ready = !players[playerIndex].ready;
+
+      const { error } = await supabase
+        .from('game_rooms')
+        .update({ 
+          game_state: {
+            ...gameState,
+            players
+          },
+          status: players.every((p: Player) => p.ready) ? 'playing' : 'waiting'
+        })
+        .eq('id', gameId);
+
+      if (error) throw error;
+
+      // If all players are ready, join the game
+      if (players.every((p: Player) => p.ready)) {
+        onJoinGame(gameId);
+      }
+    } catch (error) {
+      console.error('Error toggling ready state:', error);
+      toast.error('Failed to update ready state');
     }
   };
 
@@ -93,7 +156,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      const updatedPlayers = [...players, { name: playerName }];
+      const updatedPlayers = [...players, { name: playerName, ready: false }];
 
       const { error } = await supabase
         .from('game_rooms')
@@ -137,34 +200,63 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
           </Button>
         </div>
 
-        <div className="grid gap-4">
-          {games.map((game) => {
-            const players = game.game_state?.players || [];
-            return (
-              <div
-                key={game.id}
-                className="bg-cream/10 p-6 rounded-lg flex justify-between items-center"
-              >
-                <div className="text-cream">
-                  <p className="font-semibold">Game #{game.id.slice(0, 8)}</p>
-                  <p className="text-sm text-cream/80">
-                    Players: {players.map(p => p.name).join(', ')} ({players.length}/2)
-                  </p>
-                  <p className="text-sm text-cream/80">Status: {game.status}</p>
-                </div>
-                {game.status === 'waiting' && players.length < 2 && (
-                  <Button 
-                    onClick={() => joinGame(game.id)}
-                    className="bg-gold hover:bg-gold/90 text-black"
-                  >
-                    Join Game
-                  </Button>
-                )}
-              </div>
-            );
-          })}
+        <div className="bg-cream/10 rounded-lg p-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-cream">Game</TableHead>
+                <TableHead className="text-cream">Players</TableHead>
+                <TableHead className="text-cream">Status</TableHead>
+                <TableHead className="text-cream">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {games.map((game) => {
+                const players = game.game_state?.players || [];
+                const currentPlayer = players.find((p: Player) => p.name === playerName);
+                const isInGame = currentPlayer !== undefined;
+                
+                return (
+                  <TableRow key={game.id}>
+                    <TableCell className="text-cream">
+                      Game #{game.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="text-cream">
+                      {players.map((p: Player) => (
+                        <div key={p.name}>
+                          {p.name} {p.ready ? '✅' : '⏳'}
+                        </div>
+                      ))}
+                      ({players.length}/2)
+                    </TableCell>
+                    <TableCell className="text-cream">
+                      {game.status}
+                    </TableCell>
+                    <TableCell>
+                      {game.status === 'waiting' && !isInGame && players.length < 2 && (
+                        <Button 
+                          onClick={() => joinGame(game.id)}
+                          className="bg-gold hover:bg-gold/90 text-black"
+                        >
+                          Join Game
+                        </Button>
+                      )}
+                      {isInGame && game.status === 'waiting' && (
+                        <Button 
+                          onClick={() => toggleReady(game.id)}
+                          className={`${currentPlayer.ready ? 'bg-green-500' : 'bg-yellow-500'} hover:opacity-90 text-black`}
+                        >
+                          {currentPlayer.ready ? 'Ready!' : 'Ready Up'}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
           {games.length === 0 && (
-            <p className="text-center text-cream/80">No games available. Create one!</p>
+            <p className="text-center text-cream/80 mt-4">No games available. Create one!</p>
           )}
         </div>
       </div>
