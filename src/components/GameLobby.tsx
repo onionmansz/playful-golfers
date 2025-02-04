@@ -1,38 +1,36 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void }) => {
   const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [playerName, setPlayerName] = useState("");
-  const [showGames, setShowGames] = useState(false);
 
   useEffect(() => {
-    if (showGames) {
-      fetchGames();
-      const subscription = supabase
-        .channel('public:game_rooms')
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'game_rooms' 
-        }, fetchGames)
-        .subscribe();
+    fetchGames();
+    const subscription = supabase
+      .channel('public:game_rooms')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'game_rooms' 
+      }, fetchGames)
+      .subscribe();
 
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [showGames]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const fetchGames = async () => {
     try {
+      const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+      
       const { data, error } = await supabase
         .from('game_rooms')
         .select('*')
+        .gt('created_at', threeMinutesAgo)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -45,11 +43,6 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
   };
 
   const createGame = async () => {
-    if (!showGames) {
-      toast.error('Please enter your name first');
-      return;
-    }
-
     try {
       const { data, error } = await supabase
         .from('game_rooms')
@@ -57,7 +50,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
           status: 'waiting',
           game_state: {
             players: [{
-              name: playerName,
+              name: 'Player 1',
               ready: true
             }]
           }
@@ -76,11 +69,6 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
   };
 
   const joinGame = async (gameId: string) => {
-    if (!showGames) {
-      toast.error('Please enter your name first');
-      return;
-    }
-
     try {
       const { data: currentGame } = await supabase
         .from('game_rooms')
@@ -101,7 +89,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
         return;
       }
 
-      const updatedPlayers = [...players, { name: playerName, ready: true }];
+      const updatedPlayers = [...players, { name: 'Player 2', ready: true }];
 
       const { error } = await supabase
         .from('game_rooms')
@@ -121,42 +109,6 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
     }
   };
 
-  const handleNameSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!playerName.trim()) {
-      toast.error('Please enter your name');
-      return;
-    }
-    setShowGames(true);
-  };
-
-  if (!showGames) {
-    return (
-      <div className="min-h-screen bg-green-700 flex items-center justify-center p-4">
-        <div className="bg-cream/10 p-8 rounded-lg shadow-xl max-w-md w-full">
-          <h1 className="text-3xl font-bold text-cream mb-6 text-center">Welcome to 6-Card Golf</h1>
-          <form onSubmit={handleNameSubmit} className="space-y-4">
-            <div>
-              <Input
-                type="text"
-                placeholder="Enter your name"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="bg-cream/20 text-cream placeholder:text-cream/50"
-              />
-            </div>
-            <Button 
-              type="submit"
-              className="w-full bg-gold hover:bg-gold/90 text-black"
-            >
-              Continue to Lobby
-            </Button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-green-700 flex items-center justify-center">
@@ -169,10 +121,7 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
     <div className="min-h-screen bg-green-700 p-4">
       <div className="container mx-auto max-w-4xl">
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-cream">Game Lobby</h1>
-            <p className="text-cream/80">Playing as: {playerName}</p>
-          </div>
+          <h1 className="text-3xl font-bold text-cream">Game Lobby</h1>
           <Button 
             onClick={createGame}
             className="bg-gold hover:bg-gold/90 text-black"
