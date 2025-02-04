@@ -60,113 +60,112 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (gameId) {
-      console.log('Setting up game subscription');
-      const channel = supabase
-        .channel('game_state')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'game_rooms',
-            filter: `id=eq.${gameId}`
-          },
-          async (payload: { new: { game_state?: any } }) => {
-            console.log('Game state updated:', payload);
-            const gameState = payload.new?.game_state;
-            if (gameState) {
-              setPlayers(gameState.players || []);
-              setDeck(gameState.deck || []);
-              setDiscardPile(gameState.discardPile || []);
-              setGameStarted(gameState.gameStarted || false);
-              setCurrentPlayer(gameState.currentPlayer || 0);
-              setDrawnCard(gameState.drawnCard || null);
-              setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
-              setCanFlipCard(gameState.canFlipCard || false);
-              setSelectedCard(gameState.selectedCard || null);
-              setFinalTurnPlayer(gameState.finalTurnPlayer || null);
-              setIsLoading(false);
-            }
-          }
-        )
-        .subscribe();
-
-      // Initial game state fetch
-      const fetchGameState = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('game_rooms')
-            .select('game_state')
-            .eq('id', gameId)
-            .single();
-
-          if (error) {
-            console.error('Error fetching game state:', error);
-            toast.error('Failed to fetch game state');
-            return;
-          }
-
-          if (data?.game_state) {
-            setPlayers(data.game_state.players || []);
-            setDeck(data.game_state.deck || []);
-            setDiscardPile(data.game_state.discardPile || []);
-            setGameStarted(data.game_state.gameStarted || false);
-            setCurrentPlayer(data.game_state.currentPlayer || 0);
-            setDrawnCard(data.game_state.drawnCard || null);
-            setInitialFlipsRemaining(data.game_state.initialFlipsRemaining || [2, 2]);
-            setCanFlipCard(data.game_state.canFlipCard || false);
-            setSelectedCard(data.game_state.selectedCard || null);
-            setFinalTurnPlayer(data.game_state.finalTurnPlayer || null);
-          }
-          setIsLoading(false);
-        } catch (error) {
-          console.error('Error in fetchGameState:', error);
-          toast.error('Failed to fetch game state');
-          setIsLoading(false);
-        }
-      };
-
-      fetchGameState();
-
-      return () => {
-        console.log('Cleaning up game subscription');
-        supabase.removeChannel(channel);
-      };
+    if (gameId?.startsWith('offline-')) {
+      const savedState = localStorage.getItem(gameId);
+      if (savedState) {
+        const gameState = JSON.parse(savedState);
+        setPlayers(gameState.players || []);
+        setDeck(gameState.deck || []);
+        setDiscardPile(gameState.discardPile || []);
+        setGameStarted(gameState.gameStarted || false);
+        setCurrentPlayer(gameState.currentPlayer || 0);
+        setDrawnCard(gameState.drawnCard || null);
+        setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
+        setCanFlipCard(gameState.canFlipCard || false);
+        setSelectedCard(gameState.selectedCard || null);
+        setFinalTurnPlayer(gameState.finalTurnPlayer || null);
+        setIsLoading(false);
+      }
+      return;
     }
-  }, [gameId]);
 
-  useEffect(() => {
-    const updateGameState = async () => {
-      if (!gameId) return;
+    const channel = supabase
+      .channel('game_state')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_rooms',
+          filter: `id=eq.${gameId}`
+        },
+        async (payload: { new: { game_state?: any } }) => {
+          const gameState = payload.new?.game_state;
+          if (gameState) {
+            setPlayers(gameState.players || []);
+            setDeck(gameState.deck || []);
+            setDiscardPile(gameState.discardPile || []);
+            setGameStarted(gameState.gameStarted || false);
+            setCurrentPlayer(gameState.currentPlayer || 0);
+            setDrawnCard(gameState.drawnCard || null);
+            setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
+            setCanFlipCard(gameState.canFlipCard || false);
+            setSelectedCard(gameState.selectedCard || null);
+            setFinalTurnPlayer(gameState.finalTurnPlayer || null);
+            setIsLoading(false);
+          }
+        }
+      )
+      .subscribe();
 
+    const fetchGameState = async () => {
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('game_rooms')
-          .update({
-            game_state: {
-              players,
-              deck,
-              discardPile,
-              gameStarted,
-              currentPlayer,
-              drawnCard,
-              initialFlipsRemaining,
-              canFlipCard,
-              selectedCard,
-              finalTurnPlayer,
-            },
-          })
-          .eq('id', gameId);
+          .select('game_state')
+          .eq('id', gameId)
+          .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching game state:', error);
+          toast.error('Failed to fetch game state');
+          return;
+        }
+
+        if (data?.game_state) {
+          setPlayers(data.game_state.players || []);
+          setDeck(data.game_state.deck || []);
+          setDiscardPile(data.game_state.discardPile || []);
+          setGameStarted(data.game_state.gameStarted || false);
+          setCurrentPlayer(data.game_state.currentPlayer || 0);
+          setDrawnCard(data.game_state.drawnCard || null);
+          setInitialFlipsRemaining(data.game_state.initialFlipsRemaining || [2, 2]);
+          setCanFlipCard(data.game_state.canFlipCard || false);
+          setSelectedCard(data.game_state.selectedCard || null);
+          setFinalTurnPlayer(data.game_state.finalTurnPlayer || null);
+        }
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error updating game state:', error);
-        toast.error('Failed to update game state');
+        console.error('Error in fetchGameState:', error);
+        toast.error('Failed to fetch game state');
+        setIsLoading(false);
       }
     };
 
-    updateGameState();
+    fetchGameState();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gameId]);
+
+  useEffect(() => {
+    if (gameId?.startsWith('offline-')) {
+      const gameState = {
+        players,
+        deck,
+        discardPile,
+        gameStarted,
+        currentPlayer,
+        drawnCard,
+        initialFlipsRemaining,
+        canFlipCard,
+        selectedCard,
+        finalTurnPlayer,
+        isOffline: true
+      };
+      localStorage.setItem(gameId, JSON.stringify(gameState));
+    }
   }, [
     gameId,
     players,

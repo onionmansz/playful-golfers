@@ -77,6 +77,34 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     }
   };
 
+  const createOfflineGame = () => {
+    const playerId = crypto.randomUUID();
+    const offlineGameId = `offline-${playerId}`;
+    
+    const initialGameState = {
+      players: [{
+        id: playerId,
+        name: playerName,
+        ready: true,
+        cards: []
+      }],
+      gameStarted: true,
+      currentPlayer: 0,
+      deck: [],
+      discardPile: [],
+      drawnCard: null,
+      initialFlipsRemaining: [2, 2],
+      canFlipCard: false,
+      selectedCard: null,
+      finalTurnPlayer: null,
+      gameEnded: false,
+      isOffline: true
+    };
+
+    onJoinGame(offlineGameId);
+    localStorage.setItem(offlineGameId, JSON.stringify(initialGameState));
+  };
+
   const createGame = async () => {
     try {
       const playerId = crypto.randomUUID();
@@ -262,12 +290,20 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
             <h1 className="text-3xl font-bold text-cream">Game Lobby</h1>
             <p className="text-cream/80">Playing as: {playerName}</p>
           </div>
-          <Button 
-            onClick={createGame}
-            className="bg-gold hover:bg-gold/90 text-black"
-          >
-            Create New Game
-          </Button>
+          <div className="space-x-4">
+            <Button 
+              onClick={createOfflineGame}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              Play Offline
+            </Button>
+            <Button 
+              onClick={createGame}
+              className="bg-gold hover:bg-gold/90 text-black"
+            >
+              Create Online Game
+            </Button>
+          </div>
         </div>
 
         <div className="bg-cream/10 rounded-lg p-4">
@@ -327,7 +363,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
             </TableBody>
           </Table>
           {games.length === 0 && (
-            <p className="text-center text-cream/80 mt-4">No games available. Create one!</p>
+            <p className="text-center text-cream/80 mt-4">No online games available. Create one or play offline!</p>
           )}
         </div>
       </div>
