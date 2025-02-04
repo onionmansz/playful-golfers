@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PlayingCard from "./PlayingCard";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -133,16 +134,44 @@ const GameBoard = () => {
   const [gameEnded, setGameEnded] = useState(false);
   const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
+  
+  // New state for player setup
+  const [playerSetup, setPlayerSetup] = useState([
+    { name: "", ready: false },
+    { name: "", ready: false }
+  ]);
+
+  const handleNameChange = (index: number, name: string) => {
+    setPlayerSetup(prev => {
+      const newSetup = [...prev];
+      newSetup[index] = { ...newSetup[index], name };
+      return newSetup;
+    });
+  };
+
+  const toggleReady = (index: number) => {
+    setPlayerSetup(prev => {
+      const newSetup = [...prev];
+      newSetup[index] = { ...newSetup[index], ready: !newSetup[index].ready };
+      return newSetup;
+    });
+  };
 
   const startGame = () => {
+    // Check if both players are ready and have names
+    if (!playerSetup.every(player => player.name && player.ready)) {
+      toast("Both players must enter their names and be ready to start!");
+      return;
+    }
+
     const newDeck = createDeck();
     const player1Cards = newDeck.slice(0, 6);
     const player2Cards = newDeck.slice(6, 12);
     const remainingDeck = newDeck.slice(12);
     
     setPlayers([
-      { name: "Player 1", cards: player1Cards },
-      { name: "Player 2", cards: player2Cards },
+      { name: playerSetup[0].name, cards: player1Cards },
+      { name: playerSetup[1].name, cards: player2Cards },
     ]);
     
     setDeck(remainingDeck);
@@ -581,19 +610,54 @@ const GameBoard = () => {
     );
   };
 
+  const renderPlayerSetup = () => {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-8 bg-table p-8">
+        <h1 className="text-4xl font-bold text-cream mb-8">6-Card Golf</h1>
+        <div className="space-y-8 w-full max-w-md">
+          {playerSetup.map((player, index) => (
+            <div key={index} className="space-y-4 bg-cream/10 p-6 rounded-lg">
+              <h2 className="text-2xl font-semibold text-cream">Player {index + 1}</h2>
+              <div className="space-y-4">
+                <Input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={player.name}
+                  onChange={(e) => handleNameChange(index, e.target.value)}
+                  className="bg-cream/20 text-cream placeholder:text-cream/50"
+                />
+                <Button
+                  onClick={() => toggleReady(index)}
+                  className={cn(
+                    "w-full",
+                    player.ready
+                      ? "bg-green-500 hover:bg-green-600"
+                      : "bg-gray-500 hover:bg-gray-600"
+                  )}
+                >
+                  {player.ready ? "Ready!" : "Click when ready"}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {playerSetup.every(player => player.name && player.ready) && (
+          <Button
+            onClick={startGame}
+            className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
+          >
+            Start Game
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
         {!gameStarted ? (
-          <div className="flex flex-col items-center justify-center h-[80vh] gap-8">
-            <h1 className="text-4xl font-bold text-cream">6-Card Golf</h1>
-            <Button 
-              onClick={startGame}
-              className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
-            >
-              Start Game
-            </Button>
-          </div>
+          renderPlayerSetup()
         ) : (
           <div className="space-y-12">
             {/* Restart button */}
