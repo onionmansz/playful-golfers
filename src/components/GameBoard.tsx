@@ -72,6 +72,31 @@ const calculatePlayerScore = (cards: Card[]): number => {
   return score;
 };
 
+const calculateColumnScore = (cards: Card[], startIndex: number): number => {
+  if (!cards[startIndex].faceUp || !cards[startIndex + 3].faceUp) return 0;
+  
+  // If cards match in the column, they become worth 0
+  if (cards[startIndex].rank === cards[startIndex + 3].rank) {
+    return 0;
+  }
+  
+  return getCardValue(cards[startIndex].rank) + getCardValue(cards[startIndex + 3].rank);
+};
+
+const calculateSquareBonus = (cards: Card[], startIndex: number): number => {
+  if (!cards[startIndex].faceUp || !cards[startIndex + 1].faceUp || 
+      !cards[startIndex + 3].faceUp || !cards[startIndex + 4].faceUp) return 0;
+  
+  const square = [
+    cards[startIndex].rank,
+    cards[startIndex + 1].rank,
+    cards[startIndex + 3].rank,
+    cards[startIndex + 4].rank
+  ];
+  
+  return new Set(square).size === 1 ? -10 : 0;
+};
+
 const createDeck = () => {
   const deck: Card[] = [];
   for (const suit of SUITS) {
@@ -144,9 +169,56 @@ const GameBoard = () => {
     
     if (allCardsVisible) {
       setGameEnded(true);
-      const scores = players.map(player => calculatePlayerScore(player.cards));
-      const winningPlayer = scores[0] <= scores[1] ? players[0].name : players[1].name;
-      toast(`Game Over! ${winningPlayer} wins with scores: ${players[0].name}: ${scores[0]}, ${players[1].name}: ${scores[1]}`);
+      
+      // Calculate detailed scores for each player
+      const detailedScores = players.map(player => {
+        const columnScores = [
+          calculateColumnScore(player.cards, 0),
+          calculateColumnScore(player.cards, 1),
+          calculateColumnScore(player.cards, 2)
+        ];
+        
+        const squareBonuses = [
+          calculateSquareBonus(player.cards, 0),
+          calculateSquareBonus(player.cards, 1)
+        ];
+        
+        const totalScore = columnScores.reduce((sum, score) => sum + score, 0) + 
+                          squareBonuses.reduce((sum, bonus) => sum + bonus, 0);
+        
+        return {
+          name: player.name,
+          columnScores,
+          squareBonuses,
+          totalScore
+        };
+      });
+      
+      const winningPlayer = detailedScores[0].totalScore <= detailedScores[1].totalScore ? 
+        detailedScores[0].name : detailedScores[1].name;
+      
+      // Show detailed score breakdown
+      toast(
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg">Game Over! {winningPlayer} wins!</h3>
+          <div className="space-y-4">
+            {detailedScores.map((score, index) => (
+              <div key={index} className="space-y-1">
+                <p className="font-semibold">{score.name}:</p>
+                <div className="pl-4 space-y-1 text-sm">
+                  <p>Column 1: {score.columnScores[0]} points</p>
+                  <p>Column 2: {score.columnScores[1]} points</p>
+                  <p>Column 3: {score.columnScores[2]} points</p>
+                  {score.squareBonuses.some(bonus => bonus !== 0) && (
+                    <p>Square Bonuses: {score.squareBonuses.reduce((sum, bonus) => sum + bonus, 0)} points</p>
+                  )}
+                  <p className="font-bold">Total Score: {score.totalScore} points</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
     }
   };
 
