@@ -17,6 +17,52 @@ type Player = {
 const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 const SUITS = ["♣", "♦", "♥", "♠"];
 
+const getCardValue = (rank: string): number => {
+  if (rank === "K") return 0;
+  if (rank === "5") return -5;
+  if (["J", "Q"].includes(rank)) return 10;
+  if (rank === "A") return 1;
+  return parseInt(rank) || 0;
+};
+
+const calculatePlayerScore = (cards: Card[]): number => {
+  let score = 0;
+  
+  // First, calculate basic card values
+  const values = cards.map(card => card.faceUp ? getCardValue(card.rank) : 10);
+  
+  // Check for matching columns
+  for (let col = 0; col < 3; col++) {
+    if (cards[col].faceUp && cards[col + 3].faceUp) {
+      if (cards[col].rank === cards[col + 3].rank) {
+        values[col] = 0;
+        values[col + 3] = 0;
+      }
+    }
+  }
+  
+  // Check for 2x2 squares
+  for (let col = 0; col < 2; col++) {
+    if (cards[col].faceUp && cards[col + 1].faceUp && 
+        cards[col + 3].faceUp && cards[col + 4].faceUp) {
+      const square = [
+        cards[col].rank,
+        cards[col + 1].rank,
+        cards[col + 3].rank,
+        cards[col + 4].rank
+      ];
+      if (new Set(square).size === 1) {
+        score -= 10;
+      }
+    }
+  }
+  
+  // Sum up all values
+  score += values.reduce((sum, value) => sum + value, 0);
+  
+  return score;
+};
+
 const createDeck = () => {
   const deck: Card[] = [];
   for (const suit of SUITS) {
@@ -45,6 +91,7 @@ const GameBoard = () => {
   const [drawnCard, setDrawnCard] = useState<Card | null>(null);
   const [initialFlipsRemaining, setInitialFlipsRemaining] = useState<number[]>([2, 2]);
   const [canFlipCard, setCanFlipCard] = useState(false);
+  const [gameEnded, setGameEnded] = useState(false);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -69,6 +116,7 @@ const GameBoard = () => {
   };
 
   const restartGame = () => {
+    setGameEnded(false);
     setGameStarted(false);
     setDeck([]);
     setDiscardPile([]);
@@ -78,6 +126,25 @@ const GameBoard = () => {
     setInitialFlipsRemaining([2, 2]);
     toast("Game reset! Click Start Game to begin a new game");
   };
+
+  const checkGameEnd = () => {
+    const allCardsVisible = players.every(player => 
+      player.cards.every(card => card.faceUp)
+    );
+    
+    if (allCardsVisible) {
+      setGameEnded(true);
+      const scores = players.map(player => calculatePlayerScore(player.cards));
+      const winningPlayer = scores[0] <= scores[1] ? players[0].name : players[1].name;
+      toast(`Game Over! ${winningPlayer} wins with scores: ${players[0].name}: ${scores[0]}, ${players[1].name}: ${scores[1]}`);
+    }
+  };
+
+  useEffect(() => {
+    if (gameStarted && !gameEnded) {
+      checkGameEnd();
+    }
+  }, [players, gameStarted]);
 
   const drawCard = (fromDiscard: boolean = false) => {
     if (initialFlipsRemaining.some(flips => flips > 0)) {
@@ -156,6 +223,7 @@ const GameBoard = () => {
     if (!drawnCard && !canFlipCard) return;
 
     const currentPlayerCards = [...players[currentPlayer].cards];
+    const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
     
     if (drawnCard) {
       // Replace card with drawn card
@@ -175,8 +243,8 @@ const GameBoard = () => {
       setDrawnCard(null);
       setCanFlipCard(false);
       nextTurn();
-    } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
-      // Flip a card if allowed and card is face down
+    } else if (canFlipCard && !currentPlayerCards[index].faceUp && faceDownCards > 1) {
+      // Only allow flipping if there's more than one face-down card
       currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
       
       setPlayers(prevPlayers => {
