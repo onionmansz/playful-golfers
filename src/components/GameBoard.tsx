@@ -44,6 +44,7 @@ const GameBoard = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [drawnCard, setDrawnCard] = useState<Card | null>(null);
   const [initialFlipsRemaining, setInitialFlipsRemaining] = useState<number[]>([2, 2]);
+  const [canFlipCard, setCanFlipCard] = useState(false);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -109,9 +110,11 @@ const GameBoard = () => {
     if (fromDiscard) {
       drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
+      setCanFlipCard(false); // Can't flip when drawing from discard
     } else {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
+      setCanFlipCard(true); // Can flip when drawing from deck
     }
 
     setDrawnCard(drawn);
@@ -149,32 +152,58 @@ const GameBoard = () => {
       return;
     }
 
-    // Handle regular card swaps during gameplay
-    if (!drawnCard) return;
+    // Handle regular gameplay
+    if (!drawnCard && !canFlipCard) return;
 
     const currentPlayerCards = [...players[currentPlayer].cards];
-    const oldCard = currentPlayerCards[index];
-    currentPlayerCards[index] = drawnCard;
     
-    setPlayers(prevPlayers => {
-      const newPlayers = [...prevPlayers];
-      newPlayers[currentPlayer] = {
-        ...newPlayers[currentPlayer],
-        cards: currentPlayerCards,
-      };
-      return newPlayers;
-    });
+    if (drawnCard) {
+      // Replace card with drawn card
+      const oldCard = currentPlayerCards[index];
+      currentPlayerCards[index] = drawnCard;
+      
+      setPlayers(prevPlayers => {
+        const newPlayers = [...prevPlayers];
+        newPlayers[currentPlayer] = {
+          ...newPlayers[currentPlayer],
+          cards: currentPlayerCards,
+        };
+        return newPlayers;
+      });
 
-    setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
-    setDrawnCard(null);
-    nextTurn();
+      setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
+      setDrawnCard(null);
+      setCanFlipCard(false);
+      nextTurn();
+    } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
+      // Flip a card if allowed and card is face down
+      currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
+      
+      setPlayers(prevPlayers => {
+        const newPlayers = [...prevPlayers];
+        newPlayers[currentPlayer] = {
+          ...newPlayers[currentPlayer],
+          cards: currentPlayerCards,
+        };
+        return newPlayers;
+      });
+      
+      setCanFlipCard(false);
+      nextTurn();
+    }
   };
 
   const discardDrawnCard = () => {
     if (!drawnCard) return;
+    
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
-    nextTurn();
+    
+    if (!canFlipCard) {
+      nextTurn();
+    } else {
+      toast(`${players[currentPlayer].name} can now flip a card`);
+    }
   };
 
   const nextTurn = () => {
