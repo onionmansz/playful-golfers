@@ -335,7 +335,7 @@ const GameBoard = () => {
               <Button 
                 onClick={restartGame}
                 variant="destructive"
-                className="mb-4 text-lg font-semibold px-6 py-3"
+                className="mb-4 text-lg font-semibold px-6 py-3 text-white border-2 border-white hover:border-red-300"
               >
                 Restart Game
               </Button>
