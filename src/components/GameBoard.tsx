@@ -235,8 +235,8 @@ const GameBoard = () => {
       return;
     }
 
-    if (!fromDiscard && hasDrawnAndDiscarded) {
-      toast("You cannot draw from the main deck after discarding!");
+    if (hasDrawnAndDiscarded) {
+      toast("You cannot draw again after discarding!");
       return;
     }
 
