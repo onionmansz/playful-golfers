@@ -265,13 +265,6 @@ const GameBoard = () => {
         return newPlayers;
       });
       
-      // If there's a drawn card, add it to the discard pile
-      if (drawnCard) {
-        setDiscardPile(prev => [...prev, drawnCard]);
-        setDrawnCard(null);
-        setSelectedCard(null);
-      }
-      
       setCanFlipCard(false);
       nextTurn();
     }
