@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import PlayingCard from "./PlayingCard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -40,10 +39,8 @@ const getCardValue = (rank: string): number => {
 const calculatePlayerScore = (cards: Card[]): number => {
   let score = 0;
   
-  // First, calculate basic card values
   const values = cards.map(card => card.faceUp ? getCardValue(card.rank) : 10);
   
-  // Check for matching columns
   for (let col = 0; col < 3; col++) {
     if (cards[col].faceUp && cards[col + 3].faceUp) {
       if (cards[col].rank === cards[col + 3].rank) {
@@ -53,7 +50,6 @@ const calculatePlayerScore = (cards: Card[]): number => {
     }
   }
   
-  // Check for 2x2 squares
   for (let col = 0; col < 2; col++) {
     if (cards[col].faceUp && cards[col + 1].faceUp && 
         cards[col + 3].faceUp && cards[col + 4].faceUp) {
@@ -69,7 +65,6 @@ const calculatePlayerScore = (cards: Card[]): number => {
     }
   }
   
-  // Sum up all values
   score += values.reduce((sum, value) => sum + value, 0);
   
   return score;
@@ -78,7 +73,6 @@ const calculatePlayerScore = (cards: Card[]): number => {
 const calculateColumnScore = (cards: Card[], startIndex: number): number => {
   if (!cards[startIndex].faceUp || !cards[startIndex + 3].faceUp) return 0;
   
-  // If cards match in the column, they become worth 0
   if (cards[startIndex].rank === cards[startIndex + 3].rank) {
     return 0;
   }
@@ -102,13 +96,11 @@ const calculateSquareBonus = (cards: Card[], startIndex: number): number => {
 
 const createDeck = () => {
   const deck: Card[] = [];
-  // Add regular cards
   for (const suit of SUITS) {
     for (const rank of RANKS.filter(r => r !== "JOKER")) {
       deck.push({ rank, suit, faceUp: false });
     }
   }
-  // Add 2 jokers
   deck.push({ rank: "JOKER", suit: "♦", faceUp: false });
   deck.push({ rank: "JOKER", suit: "♥", faceUp: false });
   return shuffle(deck);
@@ -139,40 +131,11 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   const [gameEnded, setGameEnded] = useState(false);
   const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
-  
-  // New state for player setup
-  const [playerSetup, setPlayerSetup] = useState([
-    { name: "", ready: false },
-    { name: "", ready: false }
-  ]);
 
   useEffect(() => {
     if (gameId) {
-      const channel = supabase
-        .channel(`game_${gameId}`)
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
-          console.log('Presence state:', state);
-          
-          setPlayerSetup(prev => {
-            const newSetup = [...prev];
-            Object.values(state).flat().forEach((player: any) => {
-              const index = playerSetup.findIndex(p => p.name === player.name);
-              if (index !== -1) {
-                newSetup[index] = {
-                  name: player.name,
-                  ready: player.ready
-                };
-              }
-            });
-            return newSetup;
-          });
-        })
-        .subscribe();
-
-      // Subscribe to game state changes
       const gameSubscription = supabase
-        .channel('game_updates')
+        .channel(`game_${gameId}`)
         .on(
           'postgres_changes',
           {
@@ -186,27 +149,28 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
             const gameState = payload.new.game_state;
             
             if (gameState) {
-              // Update all game state
-              if (gameState.deck) setDeck(gameState.deck);
-              if (gameState.discardPile) setDiscardPile(gameState.discardPile);
-              if (gameState.players) setPlayers(gameState.players);
-              if (gameState.currentPlayer !== undefined) setCurrentPlayer(gameState.currentPlayer);
-              if (gameState.drawnCard) setDrawnCard(gameState.drawnCard);
-              if (gameState.gameStarted !== undefined) setGameStarted(gameState.gameStarted);
-              if (gameState.gameEnded !== undefined) setGameEnded(gameState.gameEnded);
+              setDeck(gameState.deck || []);
+              setDiscardPile(gameState.discardPile || []);
+              setPlayers(gameState.players || []);
+              setCurrentPlayer(gameState.currentPlayer || 0);
+              setDrawnCard(gameState.drawnCard || null);
+              setGameStarted(gameState.gameStarted || false);
+              setGameEnded(gameState.gameEnded || false);
+              setInitialFlipsRemaining(gameState.initialFlipsRemaining || [2, 2]);
+              setCanFlipCard(gameState.canFlipCard || false);
+              setSelectedCard(gameState.selectedCard || null);
+              setFinalTurnPlayer(gameState.finalTurnPlayer || null);
             }
           }
         )
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
         supabase.removeChannel(gameSubscription);
       };
     }
-  }, [gameId, playerSetup, currentPlayer]);
+  }, [gameId]);
 
-  // Update game state in Supabase whenever important state changes
   useEffect(() => {
     const updateGameState = async () => {
       if (!gameId) return;
@@ -219,6 +183,10 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
         drawnCard,
         gameStarted,
         gameEnded,
+        initialFlipsRemaining,
+        canFlipCard,
+        selectedCard,
+        finalTurnPlayer,
       };
 
       const { error } = await supabase
@@ -233,27 +201,52 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     };
 
     updateGameState();
-  }, [deck, discardPile, players, currentPlayer, drawnCard, gameStarted, gameEnded, gameId]);
+  }, [
+    gameId,
+    deck,
+    discardPile,
+    players,
+    currentPlayer,
+    drawnCard,
+    gameStarted,
+    gameEnded,
+    initialFlipsRemaining,
+    canFlipCard,
+    selectedCard,
+    finalTurnPlayer,
+  ]);
+
+  const startGame = () => {
+    const newDeck = createDeck();
+    const player1Cards = newDeck.splice(0, 6);
+    const player2Cards = newDeck.splice(0, 6);
+    
+    setPlayers([
+      { name: players[0].name, cards: player1Cards },
+      { name: players[1].name, cards: player2Cards }
+    ]);
+    
+    setDeck(newDeck);
+    setGameStarted(true);
+    setCurrentPlayer(0);
+    toast(`Game started! ${players[0].name}'s turn to flip cards`);
+  };
 
   const handleCardClick = (index: number) => {
-    // Check if it's this player's turn
     const gameState = players[currentPlayer]?.cards;
-    if (!gameState || currentPlayer !== playerSetup.findIndex(p => p.name === playerSetup[currentPlayer].name)) {
+    if (!gameState || currentPlayer !== players.findIndex(p => p.name === players[currentPlayer].name)) {
       toast.error("It's not your turn!");
       return;
     }
 
-    // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
       const currentPlayerCards = [...players[currentPlayer].cards];
       
-      // Check if this card is already face up
       if (currentPlayerCards[index].faceUp) {
         toast("You must flip a different card!");
         return;
       }
       
-      // Check if this would create a duplicate flip
       const firstFlippedCardIndex = currentPlayerCards.findIndex(card => card.faceUp);
       if (firstFlippedCardIndex !== -1 && 
           currentPlayerCards[firstFlippedCardIndex].rank === currentPlayerCards[index].rank) {
@@ -288,14 +281,12 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       return;
     }
 
-    // Handle regular gameplay
     if (!drawnCard && !canFlipCard) return;
 
     const currentPlayerCards = [...players[currentPlayer].cards];
     const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
     
     if (drawnCard && selectedCard) {
-      // Replace card with drawn card
       const oldCard = currentPlayerCards[index];
       currentPlayerCards[index] = drawnCard;
       
@@ -314,7 +305,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       setCanFlipCard(false);
       nextTurn();
     } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
-      // Allow flipping if there's more than one face-down card OR if this is the last card
       if (faceDownCards > 1 || faceDownCards === 1) {
         currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
         
@@ -343,7 +333,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     setDrawnCard(null);
     setSelectedCard(null);
     
-    // If only one card is face down, discarding ends the turn
     if (faceDownCards === 1) {
       nextTurn();
     }
@@ -512,86 +501,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     );
   };
 
-  const renderPlayerSetup = () => {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen space-y-8 bg-table p-8">
-        <h1 className="text-4xl font-bold text-cream mb-8">6-Card Golf</h1>
-        <div className="space-y-8 w-full max-w-md">
-          {playerSetup.map((player, index) => (
-            <div key={index} className="space-y-4 bg-cream/10 p-6 rounded-lg">
-              <h2 className="text-2xl font-semibold text-cream">Player {index + 1}</h2>
-              <div className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Enter your name"
-                  value={player.name}
-                  onChange={(e) => handleNameChange(index, e.target.value)}
-                  className="bg-cream/20 text-cream placeholder:text-cream/50"
-                />
-                <Button
-                  onClick={() => toggleReady(index)}
-                  className={cn(
-                    "w-full",
-                    player.ready
-                      ? "bg-green-500 hover:bg-green-600"
-                      : "bg-gray-500 hover:bg-gray-600"
-                  )}
-                >
-                  {player.ready ? "Ready!" : "Click when ready"}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-        {playerSetup.every(player => player.name && player.ready) && (
-          <Button
-            onClick={startGame}
-            className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
-          >
-            Start Game
-          </Button>
-        )}
-      </div>
-    );
-  };
-
-  const handleNameChange = (index: number, name: string) => {
-    setPlayerSetup(prev => {
-      const newSetup = [...prev];
-      newSetup[index] = {
-        ...newSetup[index],
-        name: name
-      };
-      return newSetup;
-    });
-  };
-
-  const toggleReady = (index: number) => {
-    setPlayerSetup(prev => {
-      const newSetup = [...prev];
-      newSetup[index] = {
-        ...newSetup[index],
-        ready: !newSetup[index].ready
-      };
-      return newSetup;
-    });
-  };
-
-  const startGame = () => {
-    const newDeck = createDeck();
-    const player1Cards = newDeck.splice(0, 6);
-    const player2Cards = newDeck.splice(0, 6);
-    
-    setPlayers([
-      { name: playerSetup[0].name, cards: player1Cards },
-      { name: playerSetup[1].name, cards: player2Cards }
-    ]);
-    
-    setDeck(newDeck);
-    setGameStarted(true);
-    setCurrentPlayer(0);
-  };
-
   const restartGame = () => {
     setDeck(createDeck());
     setDiscardPile([]);
@@ -604,16 +513,11 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     setGameEnded(false);
     setSelectedCard(null);
     setFinalTurnPlayer(null);
-    setPlayerSetup([
-      { name: "", ready: false },
-      { name: "", ready: false }
-    ]);
   };
 
   const nextTurn = () => {
     if (gameEnded) return;
     
-    // Check if all cards are face up for current player
     const currentPlayerCards = players[currentPlayer].cards;
     const allCardsRevealed = currentPlayerCards.every(card => card.faceUp);
     
@@ -644,7 +548,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       setSelectedCard('discard');
     } else {
       if (deck.length === 0) {
-        // Shuffle discard pile to create new deck
         if (discardPile.length === 0) {
           toast.error("No cards left to draw!");
           return;
@@ -661,18 +564,24 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       setSelectedCard('drawn');
     }
     
-    // After drawing, player can either place the card or flip one of their cards
     setCanFlipCard(true);
   };
 
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
-        {!gameStarted ? (
-          renderPlayerSetup()
+        {!gameStarted && players.length === 2 ? (
+          <div className="flex flex-col items-center justify-center space-y-8">
+            <h1 className="text-4xl font-bold text-cream">Ready to Start!</h1>
+            <Button
+              onClick={startGame}
+              className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
+            >
+              Start Game
+            </Button>
+          </div>
         ) : (
           <div className="space-y-12">
-            {/* Restart button */}
             <div className="flex justify-end">
               <Button 
                 onClick={restartGame}
@@ -683,15 +592,12 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
               </Button>
             </div>
 
-            {/* Scoring Table */}
             {renderScoringTable()}
 
-            {/* Player 2's hand */}
             <div className="mb-12">
               {renderPlayerCards(1)}
             </div>
 
-            {/* Middle section with deck and discard pile */}
             <div className="flex justify-center gap-16 my-12">
               <div className="flex flex-col items-center gap-2">
                 <div 
@@ -751,12 +657,10 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
               )}
             </div>
 
-            {/* Player 1's hand */}
             <div className="mt-12">
               {renderPlayerCards(0)}
             </div>
 
-            {/* Current player indicator */}
             <div className="text-center text-cream text-2xl mt-8">
               {gameEnded 
                 ? "Game Over!"
@@ -765,7 +669,6 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
                   : `${players[currentPlayer]?.name}'s Turn`}
             </div>
 
-            {/* Final Scores */}
             {renderFinalScores()}
           </div>
         )}
