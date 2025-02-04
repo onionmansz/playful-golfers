@@ -273,8 +273,11 @@ const GameBoard = () => {
   };
 
   const handleCardClick = (index: number) => {
-    // Prevent clicking other player's cards during their turn
+    // Determine which player's cards were clicked (0-5 for Player 1, 6-11 for Player 2)
     const clickedPlayerIndex = index < 6 ? 0 : 1;
+    const adjustedIndex = clickedPlayerIndex === 1 ? index - 6 : index;
+
+    // Prevent clicking other player's cards during their turn
     if (!initialFlipsRemaining.some(flips => flips > 0) && clickedPlayerIndex !== currentPlayer) {
       toast(`It's ${players[currentPlayer].name}'s turn!`);
       return;
@@ -284,22 +287,19 @@ const GameBoard = () => {
     if (initialFlipsRemaining[currentPlayer] > 0) {
       const currentPlayerCards = [...players[currentPlayer].cards];
       
+      // Check if this card belongs to the current player
+      if (clickedPlayerIndex !== currentPlayer) {
+        toast(`${players[currentPlayer].name} must flip their own cards!`);
+        return;
+      }
+      
       // Check if this card is already face up
-      if (currentPlayerCards[index].faceUp) {
+      if (currentPlayerCards[adjustedIndex].faceUp) {
         toast("You must flip a different card!");
         return;
       }
       
-      // Get all currently flipped cards for this player during initial phase
-      const flippedCards = currentPlayerCards.filter(card => card.faceUp);
-      
-      // If this is the second flip, check if we're trying to flip the same card
-      if (flippedCards.length === 1) {
-        // It's okay to flip a card of the same rank, as long as it's not the same exact card
-        // (which we already checked above with the faceUp check)
-      }
-      
-      currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
+      currentPlayerCards[adjustedIndex] = { ...currentPlayerCards[adjustedIndex], faceUp: true };
       
       setPlayers(prevPlayers => {
         const newPlayers = [...prevPlayers];
@@ -326,23 +326,23 @@ const GameBoard = () => {
       return;
     }
 
-    // If it's the final turn player and they've already flipped a card, don't allow more moves
-    if (finalTurnPlayer === currentPlayer && players[currentPlayer].cards.filter(card => !card.faceUp).length < players[currentPlayer].cards.filter(card => !card.faceUp).length) {
+    // Regular gameplay
+    if (!drawnCard && !canFlipCard) return;
+
+    // Ensure player is clicking their own cards
+    if (clickedPlayerIndex !== currentPlayer) {
+      toast(`You can only interact with your own cards!`);
       return;
     }
-
-    // Handle regular gameplay
-    if (!drawnCard && !canFlipCard) return;
 
     const currentPlayerCards = [...players[currentPlayer].cards];
     const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
     
     if (drawnCard && selectedCard) {
       // Replace card with drawn card
-      const oldCard = currentPlayerCards[index];
-      currentPlayerCards[index] = drawnCard;
+      const oldCard = currentPlayerCards[adjustedIndex];
+      currentPlayerCards[adjustedIndex] = drawnCard;
       
-      // Update players state with the new card
       setPlayers(prevPlayers => {
         const newPlayers = [...prevPlayers];
         newPlayers[currentPlayer] = {
@@ -352,35 +352,28 @@ const GameBoard = () => {
         return newPlayers;
       });
 
-      // Add old card to discard pile
       setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
       setDrawnCard(null);
       setSelectedCard(null);
       setCanFlipCard(false);
       setHasDrawnAndDiscarded(true);
 
-      // If this is the final turn player's move
       if (finalTurnPlayer === currentPlayer) {
-        // First ensure the card replacement is processed
         const updatedPlayers = [...players];
         updatedPlayers[currentPlayer].cards = currentPlayerCards;
-        
-        // Then reveal all remaining cards
         updatedPlayers[currentPlayer].cards = updatedPlayers[currentPlayer].cards.map(card => ({
           ...card,
           faceUp: true
         }));
-        
         setPlayers(updatedPlayers);
         setGameEnded(true);
         calculateAndDisplayFinalScores();
       } else {
         nextTurn();
       }
-    } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
-      // Allow flipping if there's more than one face-down card OR if this is the last card
+    } else if (canFlipCard && !currentPlayerCards[adjustedIndex].faceUp) {
       if (faceDownCards > 1 || faceDownCards === 1) {
-        currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
+        currentPlayerCards[adjustedIndex] = { ...currentPlayerCards[adjustedIndex], faceUp: true };
         
         setPlayers(prevPlayers => {
           const newPlayers = [...prevPlayers];
@@ -393,7 +386,6 @@ const GameBoard = () => {
         
         setCanFlipCard(false);
 
-        // If this is the final turn player's move, end the game
         if (finalTurnPlayer === currentPlayer) {
           const updatedPlayers = [...players];
           updatedPlayers[currentPlayer].cards = updatedPlayers[currentPlayer].cards.map(card => ({
