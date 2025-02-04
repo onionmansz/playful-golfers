@@ -278,8 +278,10 @@ const GameBoard = () => {
       if (allFaceUp && finalTurnPlayer === null) {
         // Set the other player as the final turn player
         setFinalTurnPlayer((currentPlayer + 1) % 2);
+        toast(`Player ${currentPlayer + 1} has revealed all cards! Player ${((currentPlayer + 1) % 2) + 1} gets one final turn.`);
         nextTurn();
-      } else if (allFaceUp || finalTurnPlayer === currentPlayer) {
+      } else if (finalTurnPlayer !== null && finalTurnPlayer === currentPlayer) {
+        // Only end the game if we're on the final player's turn
         setGameEnded(true);
         setCards(prevCards => {
           const newCards = [...prevCards];
@@ -307,12 +309,14 @@ const GameBoard = () => {
           if (allFaceUp && finalTurnPlayer === null) {
             // Set the other player as the final turn player
             setFinalTurnPlayer((currentPlayer + 1) % 2);
-          } else if (allFaceUp || finalTurnPlayer === currentPlayer) {
-            // Reveal all cards and end the game
+            toast(`Player ${currentPlayer + 1} has revealed all cards! Player ${((currentPlayer + 1) % 2) + 1} gets one final turn.`);
+          } else if (finalTurnPlayer !== null && finalTurnPlayer === currentPlayer) {
+            // Only end the game if we're on the final player's turn
+            setGameEnded(true);
+            // Reveal all cards
             for (let i = 0; i < newCards.length; i++) {
               newCards[i] = { ...newCards[i], faceUp: true };
             }
-            setGameEnded(true);
             setTimeout(() => calculateAndDisplayFinalScores(), 100);
           }
           
@@ -328,14 +332,37 @@ const GameBoard = () => {
     }
   };
 
+  const calculateColumnScore = (playerIndex: number, columnIndex: number): number => {
+    const playerStartIndex = playerIndex * 6;
+    const card1 = cards[playerStartIndex + columnIndex];
+    const card2 = cards[playerStartIndex + columnIndex + 3];
+    
+    if (!card1.faceUp || !card2.faceUp) return 10; // Hidden cards count as 10
+    
+    // If cards match in the column, they cancel out (worth 0)
+    if (card1.rank === card2.rank) return 0;
+    
+    return getCardValue(card1.rank) + getCardValue(card2.rank);
+  };
+
   const calculateAndDisplayFinalScores = () => {
     const detailedScores = [
       {
         name: "Player 1",
+        columns: [
+          calculateColumnScore(0, 0),
+          calculateColumnScore(0, 1),
+          calculateColumnScore(0, 2)
+        ],
         totalScore: calculatePlayerScore(0, cards),
       },
       {
         name: "Player 2",
+        columns: [
+          calculateColumnScore(1, 0),
+          calculateColumnScore(1, 1),
+          calculateColumnScore(1, 2)
+        ],
         totalScore: calculatePlayerScore(1, cards),
       },
     ];
@@ -351,7 +378,10 @@ const GameBoard = () => {
             <div key={index} className="space-y-1">
               <p className="font-semibold">{score.name}:</p>
               <div className="pl-4 space-y-1 text-sm">
-                <p>Total Score: {score.totalScore} points</p>
+                <p>Column 1: {score.columns[0]} points</p>
+                <p>Column 2: {score.columns[1]} points</p>
+                <p>Column 3: {score.columns[2]} points</p>
+                <p className="font-bold">Total Score: {score.totalScore} points</p>
               </div>
             </div>
           ))}
@@ -371,10 +401,10 @@ const GameBoard = () => {
     setSelectedCard(null);
     setHasDrawnAndDiscarded(true);
     
-    // If only one card is face down, allow player to either flip it or end their turn
-    if (faceDownCards === 1) {
+    // Always set canFlipCard to true after discarding, unless there are no face-down cards left
+    if (faceDownCards > 0) {
       setCanFlipCard(true);
-      toast("You can either flip your last card or end your turn");
+      toast("Select a card to flip");
     } else {
       nextTurn();
     }
@@ -435,6 +465,67 @@ const GameBoard = () => {
           </div>
         ) : (
           <div className="space-y-12">
+            {/* Scoring Reference Table */}
+            <div className="bg-cream/90 rounded-lg p-4 shadow-lg">
+              <h2 className="text-xl font-bold mb-4 text-table">Scoring Reference</h2>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Card</TableHead>
+                    <TableHead>Points</TableHead>
+                    <TableHead>Special Rules</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>King (K)</TableCell>
+                    <TableCell>0</TableCell>
+                    <TableCell>-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Joker</TableCell>
+                    <TableCell>-5</TableCell>
+                    <TableCell>-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>5</TableCell>
+                    <TableCell>-5</TableCell>
+                    <TableCell>-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Jack (J) or Queen (Q)</TableCell>
+                    <TableCell>10</TableCell>
+                    <TableCell>-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Ace (A)</TableCell>
+                    <TableCell>1</TableCell>
+                    <TableCell>-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Number Cards (2-10)</TableCell>
+                    <TableCell>Face Value</TableCell>
+                    <TableCell>-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Face Down Cards</TableCell>
+                    <TableCell>10</TableCell>
+                    <TableCell>-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Matching Column</TableCell>
+                    <TableCell>0</TableCell>
+                    <TableCell>Same rank in a column cancels both cards</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>2x2 Square Match</TableCell>
+                    <TableCell>-10</TableCell>
+                    <TableCell>Four cards of same rank in a 2x2 square</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+
             {/* Restart button */}
             <div className="flex justify-end">
               <Button 
