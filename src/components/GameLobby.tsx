@@ -18,6 +18,7 @@ interface GameLobbyProps {
 }
 
 interface Player {
+  id: string;
   name: string;
   ready: boolean;
   cards?: any[];
@@ -74,8 +75,12 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
 
   const createGame = async () => {
     try {
+      // Create a random UUID for the player
+      const playerId = crypto.randomUUID();
+
       const initialGameState = {
         players: [{
+          id: playerId,
           name: playerName,
           ready: false,
           cards: []
@@ -91,9 +96,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         finalTurnPlayer: null,
         gameEnded: false
       };
-
-      // Create a random UUID for the player
-      const playerId = crypto.randomUUID();
 
       const { data, error } = await supabase
         .from('game_rooms')
@@ -143,14 +145,20 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      const updatedPlayers = [...players, { name: playerName, ready: false }];
+      // Create a random UUID for the second player
+      const player2Id = crypto.randomUUID();
+
+      const updatedPlayers = [...players, {
+        id: player2Id,
+        name: playerName,
+        ready: false,
+        cards: []
+      }];
+
       const updatedGameState = {
         ...gameState,
         players: updatedPlayers
       };
-
-      // Create a random UUID for the second player
-      const player2Id = crypto.randomUUID();
 
       const { error } = await supabase
         .from('game_rooms')
