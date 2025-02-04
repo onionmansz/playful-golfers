@@ -177,11 +177,11 @@ const GameBoard = () => {
     if (fromDiscard) {
       drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
-      setCanFlipCard(false); // Can't flip when drawing from discard
+      setCanFlipCard(false);
     } else {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
-      setCanFlipCard(true); // Can flip when drawing from deck
+      setCanFlipCard(true);
     }
 
     setDrawnCard(drawn);
@@ -268,12 +268,7 @@ const GameBoard = () => {
     
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
-    
-    if (!canFlipCard) {
-      nextTurn();
-    } else {
-      toast(`${players[currentPlayer].name} can now flip a card`);
-    }
+    nextTurn();
   };
 
   const nextTurn = () => {
