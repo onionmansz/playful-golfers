@@ -191,6 +191,8 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
         finalTurnPlayer,
       };
 
+      console.log('Updating game state:', gameState);
+
       const { error } = await supabase
         .from('game_rooms')
         .update({ game_state: gameState })

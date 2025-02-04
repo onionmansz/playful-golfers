@@ -28,7 +28,6 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
   useEffect(() => {
     fetchGames();
     
-    // Subscribe to real-time updates
     const channel = supabase
       .channel('game_rooms')
       .on(
@@ -38,14 +37,15 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
           schema: 'public', 
           table: 'game_rooms' 
         },
-        () => {
-          console.log('Game rooms updated, fetching latest');
+        (payload) => {
+          console.log('Game rooms updated:', payload);
           fetchGames();
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -187,7 +187,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .update({ 
           game_state: {
             ...gameState,
-            players
+            players,
+            gameStarted: allReady
           },
           status: allReady ? 'playing' : 'waiting'
         })
@@ -244,6 +245,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                 const players = game.game_state?.players || [];
                 const currentPlayer = players.find((p: Player) => p.name === playerName);
                 const isInGame = Boolean(currentPlayer);
+                const gameStarted = game.game_state?.gameStarted || false;
                 
                 return (
                   <TableRow key={game.id}>
@@ -259,7 +261,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       ({players.length}/2)
                     </TableCell>
                     <TableCell className="text-cream">
-                      {game.status}
+                      {gameStarted ? 'In Progress' : game.status}
                     </TableCell>
                     <TableCell>
                       {!isInGame && game.status === 'waiting' && players.length < 2 && (
@@ -270,7 +272,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                           Join Game
                         </Button>
                       )}
-                      {isInGame && game.status === 'waiting' && (
+                      {isInGame && !gameStarted && (
                         <Button 
                           onClick={() => toggleReady(game.id)}
                           className={`${currentPlayer.ready ? 'bg-green-500' : 'bg-yellow-500'} hover:opacity-90 text-black`}
