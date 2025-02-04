@@ -187,9 +187,11 @@ const GameBoard = () => {
     if (fromDiscard) {
       drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
+      setSelectedCard('discard');
     } else {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
+      setSelectedCard('drawn');
     }
 
     setDrawnCard(drawn);
@@ -229,11 +231,12 @@ const GameBoard = () => {
     }
 
     // Handle regular gameplay
-    if (!canFlipCard) return;
+    if (!drawnCard && !canFlipCard) return;
 
     const currentPlayerCards = [...players[currentPlayer].cards];
+    const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
     
-    if (selectedCard && drawnCard) {
+    if (drawnCard && selectedCard) {
       // Replace card with drawn card
       const oldCard = currentPlayerCards[index];
       currentPlayerCards[index] = drawnCard;
@@ -252,21 +255,23 @@ const GameBoard = () => {
       setSelectedCard(null);
       setCanFlipCard(false);
       nextTurn();
-    } else if (!currentPlayerCards[index].faceUp) {
-      // Simply flip the card if no card is selected
-      currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
-      
-      setPlayers(prevPlayers => {
-        const newPlayers = [...prevPlayers];
-        newPlayers[currentPlayer] = {
-          ...newPlayers[currentPlayer],
-          cards: currentPlayerCards,
-        };
-        return newPlayers;
-      });
-      
-      setCanFlipCard(false);
-      nextTurn();
+    } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
+      // Allow flipping if there's more than one face-down card OR if this is the last card
+      if (faceDownCards > 1 || faceDownCards === 1) {
+        currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
+        
+        setPlayers(prevPlayers => {
+          const newPlayers = [...prevPlayers];
+          newPlayers[currentPlayer] = {
+            ...newPlayers[currentPlayer],
+            cards: currentPlayerCards,
+          };
+          return newPlayers;
+        });
+        
+        setCanFlipCard(false);
+        nextTurn();
+      }
     }
   };
 
