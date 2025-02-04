@@ -1,27 +1,32 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void }) => {
   const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playerName, setPlayerName] = useState("");
+  const [showGames, setShowGames] = useState(false);
 
   useEffect(() => {
-    fetchGames();
-    const subscription = supabase
-      .channel('public:game_rooms')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'game_rooms' 
-      }, fetchGames)
-      .subscribe();
+    if (showGames) {
+      fetchGames();
+      const subscription = supabase
+        .channel('public:game_rooms')
+        .on('postgres_changes', { 
+          event: '*', 
+          schema: 'public', 
+          table: 'game_rooms' 
+        }, fetchGames)
+        .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [showGames]);
 
   const fetchGames = async () => {
     try {
@@ -44,7 +49,13 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
       const { data, error } = await supabase
         .from('game_rooms')
         .insert([{ 
-          status: 'waiting'
+          status: 'waiting',
+          game_state: {
+            players: [{
+              name: playerName,
+              ready: false
+            }]
+          }
         }])
         .select()
         .single();
@@ -59,13 +70,36 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
 
   const joinGame = async (gameId: string) => {
     try {
+      const { data: currentGame } = await supabase
+        .from('game_rooms')
+        .select('game_state')
+        .eq('id', gameId)
+        .single();
+
+      if (!currentGame) {
+        toast.error('Game not found');
+        return;
+      }
+
+      const gameState = currentGame.game_state || {};
+      const players = gameState.players || [];
+
+      if (players.length >= 2) {
+        toast.error('Game is full');
+        return;
+      }
+
+      const updatedPlayers = [...players, { name: playerName, ready: false }];
+
       const { error } = await supabase
         .from('game_rooms')
         .update({ 
-          status: 'playing'
+          game_state: {
+            ...gameState,
+            players: updatedPlayers
+          }
         })
-        .eq('id', gameId)
-        .eq('status', 'waiting');
+        .eq('id', gameId);
 
       if (error) throw error;
       onJoinGame(gameId);
@@ -75,35 +109,96 @@ export const GameLobby = ({ onJoinGame }: { onJoinGame: (gameId: string) => void
     }
   };
 
+  const handleNameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!playerName.trim()) {
+      toast.error('Please enter your name');
+      return;
+    }
+    setShowGames(true);
+  };
+
+  if (!showGames) {
+    return (
+      <div className="min-h-screen bg-table flex items-center justify-center p-4">
+        <div className="bg-cream/10 p-8 rounded-lg shadow-xl max-w-md w-full">
+          <h1 className="text-3xl font-bold text-cream mb-6 text-center">Welcome to 6-Card Golf</h1>
+          <form onSubmit={handleNameSubmit} className="space-y-4">
+            <div>
+              <Input
+                type="text"
+                placeholder="Enter your name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="bg-cream/20 text-cream placeholder:text-cream/50"
+              />
+            </div>
+            <Button 
+              type="submit"
+              className="w-full bg-gold hover:bg-gold/90 text-black"
+            >
+              Continue to Lobby
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="text-center p-4">Loading games...</div>;
+    return (
+      <div className="min-h-screen bg-table flex items-center justify-center">
+        <div className="text-center text-cream p-4">Loading games...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Game Lobby</h1>
-        <Button onClick={createGame}>Create New Game</Button>
-      </div>
-
-      <div className="grid gap-4">
-        {games.map((game) => (
-          <div
-            key={game.id}
-            className="border p-4 rounded-lg flex justify-between items-center"
-          >
-            <div>
-              <p className="font-semibold">Game #{game.id.slice(0, 8)}</p>
-              <p className="text-sm text-gray-500">Status: {game.status}</p>
-            </div>
-            {game.status === 'waiting' && (
-              <Button onClick={() => joinGame(game.id)}>Join Game</Button>
-            )}
+    <div className="min-h-screen bg-table p-4">
+      <div className="container mx-auto max-w-4xl">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-cream">Game Lobby</h1>
+            <p className="text-cream/80">Playing as: {playerName}</p>
           </div>
-        ))}
-        {games.length === 0 && (
-          <p className="text-center text-gray-500">No games available. Create one!</p>
-        )}
+          <Button 
+            onClick={createGame}
+            className="bg-gold hover:bg-gold/90 text-black"
+          >
+            Create New Game
+          </Button>
+        </div>
+
+        <div className="grid gap-4">
+          {games.map((game) => {
+            const players = game.game_state?.players || [];
+            return (
+              <div
+                key={game.id}
+                className="bg-cream/10 p-6 rounded-lg flex justify-between items-center"
+              >
+                <div className="text-cream">
+                  <p className="font-semibold">Game #{game.id.slice(0, 8)}</p>
+                  <p className="text-sm text-cream/80">
+                    Players: {players.map(p => p.name).join(', ') || 'No players'}
+                  </p>
+                  <p className="text-sm text-cream/80">Status: {game.status}</p>
+                </div>
+                {game.status === 'waiting' && players.length < 2 && (
+                  <Button 
+                    onClick={() => joinGame(game.id)}
+                    className="bg-gold hover:bg-gold/90 text-black"
+                  >
+                    Join Game
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+          {games.length === 0 && (
+            <p className="text-center text-cream/80">No games available. Create one!</p>
+          )}
+        </div>
       </div>
     </div>
   );

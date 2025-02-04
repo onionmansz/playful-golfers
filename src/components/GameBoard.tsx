@@ -149,18 +149,19 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   useEffect(() => {
     if (gameId) {
       const channel = supabase
-        .channel('game_presence')
+        .channel(`game_${gameId}`)
         .on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState();
-          const players = Object.values(state).flat() as any[];
+          console.log('Presence state:', state);
           
           setPlayerSetup(prev => {
             const newSetup = [...prev];
-            players.forEach((player, index) => {
-              if (index < 2) {
+            Object.values(state).flat().forEach((player: any) => {
+              const index = playerSetup.findIndex(p => p.name === player.name);
+              if (index !== -1) {
                 newSetup[index] = {
-                  name: player.name || '',
-                  ready: player.ready || false
+                  name: player.name,
+                  ready: player.ready
                 };
               }
             });
@@ -179,212 +180,42 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
 
       trackPresence();
 
+      // Also subscribe to game state changes
+      const gameSubscription = supabase
+        .channel('game_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'game_rooms',
+            filter: `id=eq.${gameId}`
+          },
+          (payload) => {
+            const gameState = payload.new.game_state;
+            if (gameState?.currentPlayer !== undefined) {
+              setCurrentPlayer(gameState.currentPlayer);
+            }
+            // Update other game state as needed
+          }
+        )
+        .subscribe();
+
       return () => {
         supabase.removeChannel(channel);
+        supabase.removeChannel(gameSubscription);
       };
     }
-  }, [gameId, playerSetup[currentPlayer].name, playerSetup[currentPlayer].ready]);
-
-  const handleNameChange = (index: number, name: string) => {
-    setPlayerSetup(prev => {
-      const newSetup = [...prev];
-      newSetup[index] = { ...newSetup[index], name };
-      return newSetup;
-    });
-  };
-
-  const toggleReady = (index: number) => {
-    setPlayerSetup(prev => {
-      const newSetup = [...prev];
-      newSetup[index] = { ...newSetup[index], ready: !newSetup[index].ready };
-      return newSetup;
-    });
-  };
-
-  const startGame = () => {
-    // Check if both players are ready and have names
-    if (!playerSetup.every(player => player.name && player.ready)) {
-      toast("Both players must enter their names and be ready to start!");
-      return;
-    }
-
-    const newDeck = createDeck();
-    const player1Cards = newDeck.slice(0, 6);
-    const player2Cards = newDeck.slice(6, 12);
-    const remainingDeck = newDeck.slice(12);
-    
-    setPlayers([
-      { name: playerSetup[0].name, cards: player1Cards },
-      { name: playerSetup[1].name, cards: player2Cards },
-    ]);
-    
-    setDeck(remainingDeck);
-    setDiscardPile([{ ...remainingDeck[0], faceUp: true }]);
-    setDeck(remainingDeck.slice(1));
-    setGameStarted(true);
-    setCurrentPlayer(0);
-    setDrawnCard(null);
-    setInitialFlipsRemaining([2, 2]);
-    
-    toast("Game started! Each player must flip two cards");
-  };
-
-  const restartGame = () => {
-    setGameEnded(false);
-    setGameStarted(false);
-    setDeck([]);
-    setDiscardPile([]);
-    setPlayers([]);
-    setCurrentPlayer(0);
-    setDrawnCard(null);
-    setInitialFlipsRemaining([2, 2]);
-    toast("Game reset! Click Start Game to begin a new game");
-  };
-
-  const checkGameEnd = () => {
-    // Check if one player has revealed all their cards
-    const playerWithAllCardsRevealed = players.findIndex(player => 
-      player.cards.every(card => card.faceUp)
-    );
-
-    if (playerWithAllCardsRevealed !== -1) {
-      const otherPlayer = (playerWithAllCardsRevealed + 1) % 2;
-      
-      // If this is the first time we detect a player with all cards revealed
-      if (finalTurnPlayer === null) {
-        setFinalTurnPlayer(otherPlayer);
-        toast(`${players[playerWithAllCardsRevealed].name} has revealed all cards! ${players[otherPlayer].name} gets one final turn!`);
-        return;
-      }
-      
-      // If the other player has had their final turn, flip all their remaining cards
-      if (finalTurnPlayer === currentPlayer) {
-        const updatedPlayers = [...players];
-        updatedPlayers[otherPlayer].cards = updatedPlayers[otherPlayer].cards.map(card => ({
-          ...card,
-          faceUp: true
-        }));
-        setPlayers(updatedPlayers);
-        setGameEnded(true);
-      }
-    }
-    
-    const allCardsVisible = players.every(player => 
-      player.cards.every(card => card.faceUp)
-    );
-    
-    if (allCardsVisible) {
-      setGameEnded(true);
-      
-      // Calculate detailed scores for each player
-      const detailedScores = players.map(player => {
-        const columnScores = [
-          calculateColumnScore(player.cards, 0),
-          calculateColumnScore(player.cards, 1),
-          calculateColumnScore(player.cards, 2)
-        ];
-        
-        const squareBonuses = [
-          calculateSquareBonus(player.cards, 0),
-          calculateSquareBonus(player.cards, 1)
-        ];
-        
-        const totalScore = columnScores.reduce((sum, score) => sum + score, 0) + 
-                          squareBonuses.reduce((sum, bonus) => sum + bonus, 0);
-        
-        return {
-          name: player.name,
-          columnScores,
-          squareBonuses,
-          totalScore
-        };
-      });
-      
-      const winningPlayer = detailedScores[0].totalScore <= detailedScores[1].totalScore ? 
-        detailedScores[0].name : detailedScores[1].name;
-      
-      // Show detailed score breakdown
-      toast(
-        <div className="space-y-2">
-          <h3 className="font-bold text-lg">Game Over! {winningPlayer} wins!</h3>
-          <div className="space-y-4">
-            {detailedScores.map((score, index) => (
-              <div key={index} className="space-y-1">
-                <p className="font-semibold">{score.name}:</p>
-                <div className="pl-4 space-y-1 text-sm">
-                  <p>Column 1: {score.columnScores[0]} points</p>
-                  <p>Column 2: {score.columnScores[1]} points</p>
-                  <p>Column 3: {score.columnScores[2]} points</p>
-                  {score.squareBonuses.some(bonus => bonus !== 0) && (
-                    <p>Square Bonuses: {score.squareBonuses.reduce((sum, bonus) => sum + bonus, 0)} points</p>
-                  )}
-                  <p className="font-bold">Total Score: {score.totalScore} points</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-  };
-
-  const nextTurn = () => {
-    // If it's the final turn player's turn and they've completed their turn,
-    // this will trigger the game end in the next checkGameEnd
-    setCurrentPlayer((prev) => (prev + 1) % players.length);
-    toast(`${players[(currentPlayer + 1) % players.length].name}'s turn`);
-  };
-
-  useEffect(() => {
-    if (gameStarted && !gameEnded) {
-      checkGameEnd();
-    }
-  }, [players, gameStarted]);
-
-  const drawCard = (fromDiscard: boolean = false) => {
-    if (initialFlipsRemaining.some(flips => flips > 0)) {
-      toast("Both players must flip two cards before drawing!");
-      return;
-    }
-
-    if (drawnCard) {
-      toast("You already have a drawn card!");
-      return;
-    }
-
-    if (fromDiscard && discardPile.length === 0) {
-      toast("No cards in discard pile!");
-      return;
-    }
-
-    if (!fromDiscard && deck.length === 0) {
-      if (discardPile.length <= 1) {
-        toast("No cards left to draw!");
-        return;
-      }
-      const newDeck = shuffle(discardPile.slice(0, -1));
-      setDeck(newDeck);
-      setDiscardPile([discardPile[discardPile.length - 1]]);
-      return;
-    }
-
-    let drawn: Card;
-    if (fromDiscard) {
-      drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
-      setDiscardPile(prev => prev.slice(0, -1));
-      setSelectedCard('drawn'); // Changed this line to always set to 'drawn' when a card is picked up
-    } else {
-      drawn = { ...deck[deck.length - 1], faceUp: true };
-      setDeck(prev => prev.slice(0, -1));
-      setSelectedCard('drawn');
-    }
-
-    setDrawnCard(drawn);
-    setCanFlipCard(true);
-    toast(`${players[currentPlayer].name} drew a card`);
-  };
+  }, [gameId, playerSetup, currentPlayer]);
 
   const handleCardClick = (index: number) => {
+    // Check if it's this player's turn
+    const gameState = players[currentPlayer]?.cards;
+    if (!gameState || currentPlayer !== playerSetup.findIndex(p => p.name === playerSetup[currentPlayer].name)) {
+      toast.error("It's not your turn!");
+      return;
+    }
+
     // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
       const currentPlayerCards = [...players[currentPlayer].cards];
