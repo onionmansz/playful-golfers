@@ -562,7 +562,7 @@ const GameBoard = () => {
                   {gameEnded 
                     ? "Game Over!"
                     : initialFlipsRemaining.some(flips => flips > 0) 
-                      ? `${currentPlayer === 0 ? "Player 1" : "Player 2"} - Flip ${initialFlipsRemaining[currentPlayer]} cards`
+                      ? `${currentPlayer === 0 ? "Player 1" : "Player 2"} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
                       : `${currentPlayer === 0 ? "Player 1" : "Player 2"}'s Turn`}
                 </div>
                 {gameEnded && (
