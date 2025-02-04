@@ -100,6 +100,7 @@ const GameBoard = () => {
   const [initialFlipsRemaining, setInitialFlipsRemaining] = useState<number[]>([2, 2]);
   const [canFlipCard, setCanFlipCard] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -185,14 +186,15 @@ const GameBoard = () => {
     if (fromDiscard) {
       drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
-      setCanFlipCard(false);
+      setSelectedCard('discard');
     } else {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
-      setCanFlipCard(true);
+      setSelectedCard('drawn');
     }
 
     setDrawnCard(drawn);
+    setCanFlipCard(true);
     toast(`${players[currentPlayer].name} drew a card`);
   };
 
@@ -233,7 +235,7 @@ const GameBoard = () => {
     const currentPlayerCards = [...players[currentPlayer].cards];
     const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
     
-    if (drawnCard) {
+    if (drawnCard && selectedCard) {
       // Replace card with drawn card
       const oldCard = currentPlayerCards[index];
       currentPlayerCards[index] = drawnCard;
@@ -249,6 +251,7 @@ const GameBoard = () => {
 
       setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
       setDrawnCard(null);
+      setSelectedCard(null);
       setCanFlipCard(false);
       nextTurn();
     } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
@@ -279,6 +282,7 @@ const GameBoard = () => {
     
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
+    setSelectedCard(null);
     
     // If only one card is face down, discarding ends the turn
     if (faceDownCards === 1) {
@@ -423,7 +427,10 @@ const GameBoard = () => {
                 <div className="flex flex-col items-center gap-2">
                   <div 
                     onClick={() => drawCard(true)}
-                    className="cursor-pointer"
+                    className={cn(
+                      "cursor-pointer",
+                      selectedCard === 'discard' && "ring-4 ring-yellow-400 rounded-lg"
+                    )}
                   >
                     <PlayingCard
                       rank={discardPile[discardPile.length - 1].rank}
@@ -437,16 +444,20 @@ const GameBoard = () => {
               
               {drawnCard && (
                 <div className="flex flex-col items-center gap-2">
-                  <PlayingCard
-                    rank={drawnCard.rank}
-                    suit={drawnCard.suit}
-                    faceUp={true}
-                  />
+                  <div className={cn(
+                    selectedCard === 'drawn' && "ring-4 ring-yellow-400 rounded-lg"
+                  )}>
+                    <PlayingCard
+                      rank={drawnCard.rank}
+                      suit={drawnCard.suit}
+                      faceUp={true}
+                    />
+                  </div>
                   <span className="text-cream text-lg font-medium">Picked Up</span>
                   <Button 
                     onClick={discardDrawnCard}
                     variant="destructive"
-                    className="text-lg font-semibold px-6 py-3"
+                    className="text-lg font-semibold px-6 py-3 text-white border-2 border-white hover:border-red-300"
                   >
                     {players[currentPlayer].cards.filter(card => !card.faceUp).length === 1 
                       ? "End Turn" 
