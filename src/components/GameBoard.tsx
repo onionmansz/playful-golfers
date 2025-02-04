@@ -284,6 +284,18 @@ const GameBoard = () => {
   };
 
   const handleCardClick = (index: number) => {
+    // Determine which player's cards were clicked
+    const isPlayer1Cards = index < 6;
+    const isPlayer2Cards = !isPlayer1Cards;
+    
+    // Prevent clicking opponent's cards during regular gameplay
+    if (!initialFlipsRemaining.some(flips => flips > 0)) {  // Not in initial flip phase
+      if ((currentPlayer === 0 && isPlayer2Cards) || (currentPlayer === 1 && isPlayer1Cards)) {
+        toast.error("You can't interact with your opponent's cards!");
+        return;
+      }
+    }
+
     // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
       const currentPlayerCards = [...players[currentPlayer].cards];
@@ -296,12 +308,6 @@ const GameBoard = () => {
       
       // Get all currently flipped cards for this player during initial phase
       const flippedCards = currentPlayerCards.filter(card => card.faceUp);
-      
-      // If this is the second flip, check if we're trying to flip the same card
-      if (flippedCards.length === 1) {
-        // It's okay to flip a card of the same rank, as long as it's not the same exact card
-        // (which we already checked above with the faceUp check)
-      }
       
       currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
       
@@ -361,7 +367,7 @@ const GameBoard = () => {
       setDrawnCard(null);
       setSelectedCard(null);
       setCanFlipCard(false);
-      setHasDrawnAndDiscarded(true); // Set this flag when discarding
+      setHasDrawnAndDiscarded(true);
 
       // If this is the final turn player's move
       if (finalTurnPlayer === currentPlayer) {
