@@ -95,7 +95,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         .from('game_rooms')
         .insert([{ 
           status: 'waiting',
-          game_state: initialGameState
+          game_state: initialGameState,
+          player1_id: playerName // Store the first player's name as player1_id
         }])
         .select()
         .single();
@@ -115,7 +116,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     try {
       const { data: currentGame } = await supabase
         .from('game_rooms')
-        .select('game_state')
+        .select('*')
         .eq('id', gameId)
         .single();
 
@@ -146,7 +147,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       const { error } = await supabase
         .from('game_rooms')
         .update({ 
-          game_state: updatedGameState
+          game_state: updatedGameState,
+          player2_id: playerName // Store the second player's name as player2_id
         })
         .eq('id', gameId);
 
