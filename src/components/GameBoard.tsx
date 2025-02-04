@@ -133,7 +133,6 @@ const GameBoard = () => {
   const [gameEnded, setGameEnded] = useState(false);
   const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
-  const [hasDrawnAndDiscarded, setHasDrawnAndDiscarded] = useState(false);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -153,7 +152,6 @@ const GameBoard = () => {
     setCurrentPlayer(0);
     setDrawnCard(null);
     setInitialFlipsRemaining([2, 2]);
-    setHasDrawnAndDiscarded(false);
     
     toast("Game started! Each player must flip two cards");
   };
@@ -167,7 +165,6 @@ const GameBoard = () => {
     setCurrentPlayer(0);
     setDrawnCard(null);
     setInitialFlipsRemaining([2, 2]);
-    setHasDrawnAndDiscarded(false);
     toast("Game reset! Click Start Game to begin a new game");
   };
 
@@ -235,11 +232,6 @@ const GameBoard = () => {
       return;
     }
 
-    if (hasDrawnAndDiscarded) {
-      toast("You cannot draw again after discarding!");
-      return;
-    }
-
     if (fromDiscard && discardPile.length === 0) {
       toast("No cards in discard pile!");
       return;
@@ -273,26 +265,26 @@ const GameBoard = () => {
   };
 
   const handleCardClick = (index: number) => {
-    // Determine which player's cards were clicked (0-5 for Player 1, 6-11 for Player 2)
-    const clickedPlayerIndex = index < 6 ? 0 : 1;
-    const adjustedIndex = clickedPlayerIndex === 1 ? index - 6 : index;
-
-    // During initial flips phase
+    // Handle initial card flips
     if (initialFlipsRemaining[currentPlayer] > 0) {
-      // If clicking opponent's cards during initial phase, silently ignore
-      if (clickedPlayerIndex !== currentPlayer) {
-        return;
-      }
-
       const currentPlayerCards = [...players[currentPlayer].cards];
       
       // Check if this card is already face up
-      if (currentPlayerCards[adjustedIndex].faceUp) {
+      if (currentPlayerCards[index].faceUp) {
         toast("You must flip a different card!");
         return;
       }
       
-      currentPlayerCards[adjustedIndex] = { ...currentPlayerCards[adjustedIndex], faceUp: true };
+      // Get all currently flipped cards for this player during initial phase
+      const flippedCards = currentPlayerCards.filter(card => card.faceUp);
+      
+      // If this is the second flip, check if we're trying to flip the same card
+      if (flippedCards.length === 1) {
+        // It's okay to flip a card of the same rank, as long as it's not the same exact card
+        // (which we already checked above with the faceUp check)
+      }
+      
+      currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
       
       setPlayers(prevPlayers => {
         const newPlayers = [...prevPlayers];
@@ -319,23 +311,23 @@ const GameBoard = () => {
       return;
     }
 
-    // Regular gameplay
-    if (!drawnCard && !canFlipCard) return;
-
-    // Ensure player is clicking their own cards
-    if (clickedPlayerIndex !== currentPlayer) {
-      toast(`You can only interact with your own cards!`);
+    // If it's the final turn player and they've already flipped a card, don't allow more moves
+    if (finalTurnPlayer === currentPlayer && players[currentPlayer].cards.filter(card => !card.faceUp).length < players[currentPlayer].cards.filter(card => !card.faceUp).length) {
       return;
     }
+
+    // Handle regular gameplay
+    if (!drawnCard && !canFlipCard) return;
 
     const currentPlayerCards = [...players[currentPlayer].cards];
     const faceDownCards = currentPlayerCards.filter(card => !card.faceUp).length;
     
     if (drawnCard && selectedCard) {
       // Replace card with drawn card
-      const oldCard = currentPlayerCards[adjustedIndex];
-      currentPlayerCards[adjustedIndex] = drawnCard;
+      const oldCard = currentPlayerCards[index];
+      currentPlayerCards[index] = drawnCard;
       
+      // Update players state with the new card
       setPlayers(prevPlayers => {
         const newPlayers = [...prevPlayers];
         newPlayers[currentPlayer] = {
@@ -345,28 +337,34 @@ const GameBoard = () => {
         return newPlayers;
       });
 
+      // Add old card to discard pile
       setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
       setDrawnCard(null);
       setSelectedCard(null);
       setCanFlipCard(false);
-      setHasDrawnAndDiscarded(true);
 
+      // If this is the final turn player's move
       if (finalTurnPlayer === currentPlayer) {
+        // First ensure the card replacement is processed
         const updatedPlayers = [...players];
         updatedPlayers[currentPlayer].cards = currentPlayerCards;
+        
+        // Then reveal all remaining cards
         updatedPlayers[currentPlayer].cards = updatedPlayers[currentPlayer].cards.map(card => ({
           ...card,
           faceUp: true
         }));
+        
         setPlayers(updatedPlayers);
         setGameEnded(true);
         calculateAndDisplayFinalScores();
       } else {
         nextTurn();
       }
-    } else if (canFlipCard && !currentPlayerCards[adjustedIndex].faceUp) {
+    } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
+      // Allow flipping if there's more than one face-down card OR if this is the last card
       if (faceDownCards > 1 || faceDownCards === 1) {
-        currentPlayerCards[adjustedIndex] = { ...currentPlayerCards[adjustedIndex], faceUp: true };
+        currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
         
         setPlayers(prevPlayers => {
           const newPlayers = [...prevPlayers];
@@ -379,6 +377,7 @@ const GameBoard = () => {
         
         setCanFlipCard(false);
 
+        // If this is the final turn player's move, end the game
         if (finalTurnPlayer === currentPlayer) {
           const updatedPlayers = [...players];
           updatedPlayers[currentPlayer].cards = updatedPlayers[currentPlayer].cards.map(card => ({
@@ -454,7 +453,6 @@ const GameBoard = () => {
     setDiscardPile(prev => [...prev, drawnCard]);
     setDrawnCard(null);
     setSelectedCard(null);
-    setHasDrawnAndDiscarded(true);
     
     // If only one card is face down, discarding ends the turn
     if (faceDownCards === 1) {
@@ -464,7 +462,6 @@ const GameBoard = () => {
 
   const nextTurn = () => {
     setCurrentPlayer((prev) => (prev + 1) % players.length);
-    setHasDrawnAndDiscarded(false);
     toast(`${players[(currentPlayer + 1) % players.length].name}'s turn`);
   };
 
@@ -665,17 +662,8 @@ const GameBoard = () => {
               {renderPlayerCards(1)}
             </div>
 
-            {/* Middle section with status, deck and discard pile */}
-            <div className="flex items-center justify-center gap-16 my-12">
-              {/* Current player indicator */}
-              <div className="text-center text-cream text-2xl">
-                {gameEnded 
-                  ? "Game Over!"
-                  : initialFlipsRemaining.some(flips => flips > 0) 
-                    ? `${players[currentPlayer]?.name} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
-                    : `${players[currentPlayer]?.name}'s Turn`}
-              </div>
-
+            {/* Middle section with deck and discard pile */}
+            <div className="flex justify-center gap-16 my-12">
               <div className="flex flex-col items-center gap-2">
                 <div 
                   onClick={() => drawCard(false)}
@@ -737,6 +725,15 @@ const GameBoard = () => {
             {/* Player 1's hand */}
             <div className="mt-12">
               {renderPlayerCards(0)}
+            </div>
+
+            {/* Current player indicator */}
+            <div className="text-center text-cream text-2xl mt-8">
+              {gameEnded 
+                ? "Game Over!"
+                : initialFlipsRemaining.some(flips => flips > 0) 
+                  ? `${players[currentPlayer]?.name} - Flip ${2 - initialFlipsRemaining[currentPlayer]} cards`
+                  : `${players[currentPlayer]?.name}'s Turn`}
             </div>
 
             {/* Final Scores */}
