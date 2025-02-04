@@ -59,6 +59,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize or load game state
   useEffect(() => {
     if (gameId?.startsWith('offline-')) {
       const savedState = localStorage.getItem(gameId);
@@ -186,6 +187,38 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       supabase.removeChannel(channel);
     };
   }, [gameId]);
+
+  // Save state changes to localStorage for offline games
+  useEffect(() => {
+    if (gameId?.startsWith('offline-') && gameStarted) {
+      const gameState = {
+        players,
+        deck,
+        discardPile,
+        gameStarted,
+        currentPlayer,
+        drawnCard,
+        initialFlipsRemaining,
+        canFlipCard,
+        selectedCard,
+        finalTurnPlayer,
+        isOffline: true
+      };
+      localStorage.setItem(gameId, JSON.stringify(gameState));
+    }
+  }, [
+    gameId,
+    players,
+    deck,
+    discardPile,
+    gameStarted,
+    currentPlayer,
+    drawnCard,
+    initialFlipsRemaining,
+    canFlipCard,
+    selectedCard,
+    finalTurnPlayer,
+  ]);
 
   const startGame = async () => {
     const shuffledDeck = shuffleArray(createDeck());
