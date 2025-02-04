@@ -307,12 +307,13 @@ const GameBoard = () => {
         return;
       }
       
-      // Check if this would create a duplicate flip
-      const firstFlippedCardIndex = currentPlayerCards.findIndex(card => card.faceUp);
-      if (firstFlippedCardIndex !== -1 && 
-          currentPlayerCards[firstFlippedCardIndex].rank === currentPlayerCards[index].rank) {
-        toast("You cannot flip two cards of the same rank during initial flips!");
-        return;
+      // Get all currently flipped cards for this player during initial phase
+      const flippedCards = currentPlayerCards.filter(card => card.faceUp);
+      
+      // If this is the second flip, check if we're trying to flip the same card
+      if (flippedCards.length === 1) {
+        // It's okay to flip a card of the same rank, as long as it's not the same exact card
+        // (which we already checked above with the faceUp check)
       }
       
       currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
