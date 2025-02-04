@@ -466,6 +466,89 @@ const GameBoard = () => {
     );
   };
 
+  const renderFinalScores = () => {
+    if (!gameEnded) return null;
+
+    const detailedScores = players.map(player => {
+      const columnScores = [
+        calculateColumnScore(player.cards, 0),
+        calculateColumnScore(player.cards, 1),
+        calculateColumnScore(player.cards, 2)
+      ];
+      
+      const squareBonuses = [
+        calculateSquareBonus(player.cards, 0),
+        calculateSquareBonus(player.cards, 1)
+      ];
+      
+      const totalScore = columnScores.reduce((sum, score) => sum + score, 0) + 
+                        squareBonuses.reduce((sum, bonus) => sum + bonus, 0);
+      
+      return {
+        name: player.name,
+        columnScores,
+        squareBonuses,
+        totalScore
+      };
+    });
+
+    const winningPlayer = detailedScores[0].totalScore <= detailedScores[1].totalScore ? 
+      detailedScores[0] : detailedScores[1];
+
+    return (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="bg-cream/95 p-8 rounded-lg max-w-xl w-full mx-4 space-y-6">
+          <h2 className="text-3xl font-bold text-center text-black">
+            Game Over! {winningPlayer.name} Wins!
+          </h2>
+          <div className="space-y-8">
+            {detailedScores.map((score, index) => (
+              <div key={index} className={`p-6 rounded-lg ${score === winningPlayer ? 'bg-gold/20' : 'bg-black/10'}`}>
+                <h3 className="text-xl font-bold mb-4">{score.name}</h3>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">Column 1</TableCell>
+                      <TableCell className="text-right">{score.columnScores[0]} points</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Column 2</TableCell>
+                      <TableCell className="text-right">{score.columnScores[1]} points</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Column 3</TableCell>
+                      <TableCell className="text-right">{score.columnScores[2]} points</TableCell>
+                    </TableRow>
+                    {score.squareBonuses.some(bonus => bonus !== 0) && (
+                      <TableRow>
+                        <TableCell className="font-medium">Square Bonuses</TableCell>
+                        <TableCell className="text-right">
+                          {score.squareBonuses.reduce((sum, bonus) => sum + bonus, 0)} points
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow className="font-bold">
+                      <TableCell>Total Score</TableCell>
+                      <TableCell className="text-right">{score.totalScore} points</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-center mt-6">
+            <Button 
+              onClick={restartGame}
+              className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-4"
+            >
+              Play Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
@@ -575,6 +658,7 @@ const GameBoard = () => {
             </div>
           </div>
         )}
+        {renderFinalScores()}
       </div>
     </div>
   );
