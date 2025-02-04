@@ -55,8 +55,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
           status: 'waiting',
           game_state: {
             players: [{
-              name: playerName,
-              ready: true
+              name: playerName
             }]
           }
         }])
@@ -94,7 +93,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
         return;
       }
 
-      const updatedPlayers = [...players, { name: playerName, ready: true }];
+      const updatedPlayers = [...players, { name: playerName }];
 
       const { error } = await supabase
         .from('game_rooms')
