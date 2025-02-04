@@ -254,6 +254,17 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     }
   };
 
+  const isPlayerInGame = (game: any) => {
+    const players = game.game_state?.players || [];
+    return players.some((p: Player) => p.name === playerName);
+  };
+
+  const getPlayerReadyStatus = (game: any) => {
+    const players = game.game_state?.players || [];
+    const player = players.find((p: Player) => p.name === playerName);
+    return player?.ready || false;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-green-700 flex items-center justify-center">
@@ -291,8 +302,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
             <TableBody>
               {games.map((game) => {
                 const players = game.game_state?.players || [];
-                const currentPlayer = players.find((p: Player) => p.name === playerName);
-                const isInGame = Boolean(currentPlayer);
+                const isInGame = isPlayerInGame(game);
+                const isReady = getPlayerReadyStatus(game);
                 const gameStarted = game.game_state?.gameStarted || false;
                 
                 return (
@@ -323,9 +334,9 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       {isInGame && !gameStarted && (
                         <Button 
                           onClick={() => toggleReady(game.id)}
-                          className={currentPlayer.ready ? 'bg-green-500 hover:opacity-90 text-white' : 'bg-yellow-500 hover:opacity-90 text-black'}
+                          className={isReady ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-yellow-500 hover:bg-yellow-600 text-black'}
                         >
-                          {currentPlayer.ready ? 'Ready!' : 'Ready Up'}
+                          {isReady ? 'Ready!' : 'Ready Up'}
                         </Button>
                       )}
                     </TableCell>
