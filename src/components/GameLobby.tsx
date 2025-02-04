@@ -1,4 +1,4 @@
-```typescript
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -278,7 +278,7 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
                       {isInGame && !gameStarted && (
                         <Button 
                           onClick={() => toggleReady(game.id)}
-                          className={`${currentPlayer.ready ? 'bg-green-500' : 'bg-yellow-500'} hover:opacity-90 text-black`}
+                          className={currentPlayer.ready ? 'bg-green-500 hover:opacity-90 text-black' : 'bg-yellow-500 hover:opacity-90 text-black'}
                         >
                           {currentPlayer.ready ? 'Ready!' : 'Ready Up'}
                         </Button>
@@ -297,4 +297,3 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
     </div>
   );
 };
-```
