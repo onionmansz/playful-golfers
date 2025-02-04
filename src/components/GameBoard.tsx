@@ -322,6 +322,7 @@ const GameBoard = () => {
       const oldCard = currentPlayerCards[index];
       currentPlayerCards[index] = drawnCard;
       
+      // Update players state with the new card
       setPlayers(prevPlayers => {
         const newPlayers = [...prevPlayers];
         newPlayers[currentPlayer] = {
@@ -331,18 +332,24 @@ const GameBoard = () => {
         return newPlayers;
       });
 
+      // Add old card to discard pile
       setDiscardPile(prev => [...prev, { ...oldCard, faceUp: true }]);
       setDrawnCard(null);
       setSelectedCard(null);
       setCanFlipCard(false);
 
-      // If this is the final turn player's move, end the game
+      // If this is the final turn player's move
       if (finalTurnPlayer === currentPlayer) {
+        // First ensure the card replacement is processed
         const updatedPlayers = [...players];
+        updatedPlayers[currentPlayer].cards = currentPlayerCards;
+        
+        // Then reveal all remaining cards
         updatedPlayers[currentPlayer].cards = updatedPlayers[currentPlayer].cards.map(card => ({
           ...card,
           faceUp: true
         }));
+        
         setPlayers(updatedPlayers);
         setGameEnded(true);
         calculateAndDisplayFinalScores();
