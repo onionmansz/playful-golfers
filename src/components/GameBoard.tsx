@@ -239,8 +239,10 @@ const GameBoard = () => {
     // Regular gameplay
     if (!drawnCard && !canFlipCard) return;
 
-    const faceDownCards = cards.slice(currentPlayer * 6, (currentPlayer + 1) * 6)
-                              .filter(card => !card.faceUp).length;
+    const playerStartIndex = currentPlayer * 6;
+    const playerEndIndex = playerStartIndex + 6;
+    const playerCards = cards.slice(playerStartIndex, playerEndIndex);
+    const faceDownCards = playerCards.filter(card => !card.faceUp).length;
     
     if (drawnCard && selectedCard) {
       // Replace card with drawn card
@@ -259,17 +261,33 @@ const GameBoard = () => {
       setCanFlipCard(false);
       setHasDrawnAndDiscarded(true);
 
-      // If this is the final turn player's move
-      if (finalTurnPlayer === currentPlayer) {
+      // Check if all cards are face up for the current player
+      const updatedPlayerCards = cards.slice(playerStartIndex, playerEndIndex).map((card, i) => 
+        i === (index % 6) ? drawnCard : card
+      );
+      const allFaceUp = updatedPlayerCards.every(card => card.faceUp);
+
+      if (allFaceUp) {
+        setGameEnded(true);
         setCards(prevCards => {
           const newCards = [...prevCards];
-          // Reveal all remaining cards for current player
-          for (let i = currentPlayer * 6; i < (currentPlayer + 1) * 6; i++) {
+          // Reveal all remaining cards for both players
+          for (let i = 0; i < newCards.length; i++) {
             newCards[i] = { ...newCards[i], faceUp: true };
           }
           return newCards;
         });
+        calculateAndDisplayFinalScores();
+      } else if (finalTurnPlayer === currentPlayer) {
         setGameEnded(true);
+        setCards(prevCards => {
+          const newCards = [...prevCards];
+          // Reveal all remaining cards for both players
+          for (let i = 0; i < newCards.length; i++) {
+            newCards[i] = { ...newCards[i], faceUp: true };
+          }
+          return newCards;
+        });
         calculateAndDisplayFinalScores();
       } else {
         nextTurn();
@@ -280,24 +298,26 @@ const GameBoard = () => {
         setCards(prevCards => {
           const newCards = [...prevCards];
           newCards[index] = { ...newCards[index], faceUp: true };
+          
+          // Check if all cards are face up for the current player after this flip
+          const updatedPlayerCards = newCards.slice(playerStartIndex, playerEndIndex);
+          const allFaceUp = updatedPlayerCards.every(card => card.faceUp);
+          
+          if (allFaceUp) {
+            // Reveal all cards and end the game
+            for (let i = 0; i < newCards.length; i++) {
+              newCards[i] = { ...newCards[i], faceUp: true };
+            }
+            setGameEnded(true);
+            setTimeout(() => calculateAndDisplayFinalScores(), 100);
+          }
+          
           return newCards;
         });
         
         setCanFlipCard(false);
 
-        // If this is the final turn player's move, end the game
-        if (finalTurnPlayer === currentPlayer) {
-          setCards(prevCards => {
-            const newCards = [...prevCards];
-            // Reveal all remaining cards for current player
-            for (let i = currentPlayer * 6; i < (currentPlayer + 1) * 6; i++) {
-              newCards[i] = { ...newCards[i], faceUp: true };
-            }
-            return newCards;
-          });
-          setGameEnded(true);
-          calculateAndDisplayFinalScores();
-        } else {
+        if (!gameEnded) {
           nextTurn();
         }
       }
