@@ -72,9 +72,9 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
             table: 'game_rooms',
             filter: `id=eq.${gameId}`
           },
-          async (payload) => {
+          async (payload: { new: { game_state?: any } }) => {
             console.log('Game state updated:', payload);
-            const gameState = payload.new.game_state;
+            const gameState = payload.new?.game_state;
             if (gameState) {
               setPlayers(gameState.players || []);
               setDeck(gameState.deck || []);
@@ -94,31 +94,37 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
 
       // Initial game state fetch
       const fetchGameState = async () => {
-        const { data, error } = await supabase
-          .from('game_rooms')
-          .select('game_state')
-          .eq('id', gameId)
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from('game_rooms')
+            .select('game_state')
+            .eq('id', gameId)
+            .single();
 
-        if (error) {
-          console.error('Error fetching game state:', error);
+          if (error) {
+            console.error('Error fetching game state:', error);
+            toast.error('Failed to fetch game state');
+            return;
+          }
+
+          if (data?.game_state) {
+            setPlayers(data.game_state.players || []);
+            setDeck(data.game_state.deck || []);
+            setDiscardPile(data.game_state.discardPile || []);
+            setGameStarted(data.game_state.gameStarted || false);
+            setCurrentPlayer(data.game_state.currentPlayer || 0);
+            setDrawnCard(data.game_state.drawnCard || null);
+            setInitialFlipsRemaining(data.game_state.initialFlipsRemaining || [2, 2]);
+            setCanFlipCard(data.game_state.canFlipCard || false);
+            setSelectedCard(data.game_state.selectedCard || null);
+            setFinalTurnPlayer(data.game_state.finalTurnPlayer || null);
+          }
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Error in fetchGameState:', error);
           toast.error('Failed to fetch game state');
-          return;
+          setIsLoading(false);
         }
-
-        if (data?.game_state) {
-          setPlayers(data.game_state.players || []);
-          setDeck(data.game_state.deck || []);
-          setDiscardPile(data.game_state.discardPile || []);
-          setGameStarted(data.game_state.gameStarted || false);
-          setCurrentPlayer(data.game_state.currentPlayer || 0);
-          setDrawnCard(data.game_state.drawnCard || null);
-          setInitialFlipsRemaining(data.game_state.initialFlipsRemaining || [2, 2]);
-          setCanFlipCard(data.game_state.canFlipCard || false);
-          setSelectedCard(data.game_state.selectedCard || null);
-          setFinalTurnPlayer(data.game_state.finalTurnPlayer || null);
-        }
-        setIsLoading(false);
       };
 
       fetchGameState();

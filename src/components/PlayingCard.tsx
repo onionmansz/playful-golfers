@@ -9,7 +9,7 @@ interface PlayingCardProps {
   className?: string;
 }
 
-const PlayingCard: React.FC<PlayingCardProps> = ({
+export const PlayingCard: React.FC<PlayingCardProps> = ({
   rank,
   suit,
   faceUp,
@@ -59,5 +59,3 @@ const PlayingCard: React.FC<PlayingCardProps> = ({
     </div>
   );
 };
-
-export default PlayingCard;
