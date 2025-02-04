@@ -170,17 +170,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
         })
         .subscribe();
 
-      // Track this player's state
-      const trackPresence = async () => {
-        await channel.track({
-          name: playerSetup[currentPlayer].name,
-          ready: playerSetup[currentPlayer].ready
-        });
-      };
-
-      trackPresence();
-
-      // Also subscribe to game state changes
+      // Subscribe to game state changes
       const gameSubscription = supabase
         .channel('game_updates')
         .on(
@@ -191,12 +181,20 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
             table: 'game_rooms',
             filter: `id=eq.${gameId}`
           },
-          (payload) => {
+          async (payload) => {
+            console.log('Game state updated:', payload.new);
             const gameState = payload.new.game_state;
-            if (gameState?.currentPlayer !== undefined) {
-              setCurrentPlayer(gameState.currentPlayer);
+            
+            if (gameState) {
+              // Update all game state
+              if (gameState.deck) setDeck(gameState.deck);
+              if (gameState.discardPile) setDiscardPile(gameState.discardPile);
+              if (gameState.players) setPlayers(gameState.players);
+              if (gameState.currentPlayer !== undefined) setCurrentPlayer(gameState.currentPlayer);
+              if (gameState.drawnCard) setDrawnCard(gameState.drawnCard);
+              if (gameState.gameStarted !== undefined) setGameStarted(gameState.gameStarted);
+              if (gameState.gameEnded !== undefined) setGameEnded(gameState.gameEnded);
             }
-            // Update other game state as needed
           }
         )
         .subscribe();
@@ -207,6 +205,35 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       };
     }
   }, [gameId, playerSetup, currentPlayer]);
+
+  // Update game state in Supabase whenever important state changes
+  useEffect(() => {
+    const updateGameState = async () => {
+      if (!gameId) return;
+
+      const gameState = {
+        deck,
+        discardPile,
+        players,
+        currentPlayer,
+        drawnCard,
+        gameStarted,
+        gameEnded,
+      };
+
+      const { error } = await supabase
+        .from('game_rooms')
+        .update({ game_state: gameState })
+        .eq('id', gameId);
+
+      if (error) {
+        console.error('Error updating game state:', error);
+        toast.error('Failed to update game state');
+      }
+    };
+
+    updateGameState();
+  }, [deck, discardPile, players, currentPlayer, drawnCard, gameStarted, gameEnded, gameId]);
 
   const handleCardClick = (index: number) => {
     // Check if it's this player's turn
@@ -606,7 +633,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     setCanFlipCard(false);
   };
 
-  const drawCard = (fromDiscard: boolean) => {
+  const drawCard = async (fromDiscard: boolean) => {
     if (drawnCard) return;
     
     if (fromDiscard) {
