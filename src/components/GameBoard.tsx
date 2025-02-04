@@ -496,8 +496,8 @@ const GameBoard = () => {
       detailedScores[0] : detailedScores[1];
 
     return (
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-cream/90 p-8 rounded-lg max-w-xl w-full mx-4 space-y-6 shadow-xl">
+      <div className="fixed inset-y-0 left-0 bg-black/40 backdrop-blur-sm flex items-center z-50">
+        <div className="bg-cream/90 p-8 rounded-lg max-w-md mx-4 space-y-6 shadow-xl">
           <h2 className="text-3xl font-bold text-center text-black">
             Game Over! {winningPlayer.name} Wins!
           </h2>
