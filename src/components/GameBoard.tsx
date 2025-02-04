@@ -106,6 +106,7 @@ const GameBoard = () => {
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
   const [hasDrawnAndDiscarded, setHasDrawnAndDiscarded] = useState(false);
   const [hasDrawnFromMainDeck, setHasDrawnFromMainDeck] = useState(false);
+  const [hasDrawnFromDiscard, setHasDrawnFromDiscard] = useState(false);
 
   const startGame = () => {
     const newDeck = createDeck();
@@ -123,6 +124,7 @@ const GameBoard = () => {
     setInitialFlipsRemaining([2, 2]);
     setHasDrawnAndDiscarded(false);
     setHasDrawnFromMainDeck(false);
+    setHasDrawnFromDiscard(false);
     
     toast("Game started! Each player must flip two cards");
   };
@@ -144,8 +146,14 @@ const GameBoard = () => {
     }
 
     // Check if player has already drawn and discarded this turn
-    if (hasDrawnAndDiscarded) {
+    if (hasDrawnAndDiscarded && !hasDrawnFromDiscard) {
       toast("You've already drawn and discarded this turn!");
+      return;
+    }
+
+    // Prevent drawing from discard if already drawn from it
+    if (fromDiscard && hasDrawnFromDiscard) {
+      toast("You can't draw from the discard pile again this turn!");
       return;
     }
 
@@ -176,11 +184,12 @@ const GameBoard = () => {
       drawn = { ...discardPile[discardPile.length - 1], faceUp: true };
       setDiscardPile(prev => prev.slice(0, -1));
       setSelectedCard('drawn');
+      setHasDrawnFromDiscard(true);
     } else {
       drawn = { ...deck[deck.length - 1], faceUp: true };
       setDeck(prev => prev.slice(0, -1));
       setSelectedCard('drawn');
-      setHasDrawnFromMainDeck(true); // Set this flag when drawing from main deck
+      setHasDrawnFromMainDeck(true);
     }
 
     setDrawnCard(drawn);
@@ -372,6 +381,7 @@ const GameBoard = () => {
     setCurrentPlayer((prev) => (prev + 1) % 2);
     setHasDrawnAndDiscarded(false);
     setHasDrawnFromMainDeck(false);
+    setHasDrawnFromDiscard(false);
     toast(`Player ${((currentPlayer + 1) % 2) + 1}'s turn`);
   };
 
