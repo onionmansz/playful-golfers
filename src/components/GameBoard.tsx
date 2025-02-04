@@ -4,6 +4,10 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { PlayingCard } from "./PlayingCard";
 
+interface GameBoardProps {
+  gameId?: string;
+}
+
 type Card = {
   rank: string;
   suit: string;
