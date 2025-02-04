@@ -22,6 +22,7 @@ type Card = {
 type Player = {
   name: string;
   cards: Card[];
+  ready?: boolean;
 };
 
 const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "JOKER"];
@@ -131,6 +132,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
   const [gameEnded, setGameEnded] = useState(false);
   const [selectedCard, setSelectedCard] = useState<'drawn' | 'discard' | null>(null);
   const [finalTurnPlayer, setFinalTurnPlayer] = useState<number | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     if (gameId) {
@@ -161,6 +163,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
               setCanFlipCard(gameState.canFlipCard || false);
               setSelectedCard(gameState.selectedCard || null);
               setFinalTurnPlayer(gameState.finalTurnPlayer || null);
+              setIsInitializing(false);
             }
           }
         )
@@ -204,7 +207,9 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
       }
     };
 
-    updateGameState();
+    if (!isInitializing) {
+      updateGameState();
+    }
   }, [
     gameId,
     deck,
@@ -218,9 +223,20 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     canFlipCard,
     selectedCard,
     finalTurnPlayer,
+    isInitializing,
   ]);
 
   const startGame = () => {
+    if (players.length !== 2) {
+      toast.error("Waiting for both players to join");
+      return;
+    }
+    
+    if (!players.every(player => player.ready)) {
+      toast.error("Waiting for all players to be ready");
+      return;
+    }
+
     const newDeck = createDeck();
     const player1Cards = newDeck.splice(0, 6);
     const player2Cards = newDeck.splice(0, 6);
@@ -233,6 +249,7 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     setDeck(newDeck);
     setGameStarted(true);
     setCurrentPlayer(0);
+    setIsInitializing(false);
     toast(`Game started! ${players[0].name}'s turn to flip cards`);
   };
 
@@ -571,18 +588,42 @@ const GameBoard = ({ gameId }: GameBoardProps) => {
     setCanFlipCard(true);
   };
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-table flex items-center justify-center">
+        <div className="text-cream text-2xl">Loading game...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-table p-8">
       <div className="max-w-4xl mx-auto">
-        {!gameStarted && players.length === 2 ? (
+        {!gameStarted ? (
           <div className="flex flex-col items-center justify-center space-y-8">
-            <h1 className="text-4xl font-bold text-cream">Ready to Start!</h1>
-            <Button
-              onClick={startGame}
-              className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
-            >
-              Start Game
-            </Button>
+            <h1 className="text-4xl font-bold text-cream">
+              {players.length < 2 
+                ? "Waiting for players to join..."
+                : !players.every(p => p.ready)
+                  ? "Waiting for players to be ready..."
+                  : "Ready to Start!"}
+            </h1>
+            {players.length === 2 && players.every(p => p.ready) && (
+              <Button
+                onClick={startGame}
+                className="bg-gold hover:bg-gold/90 text-black text-xl px-8 py-6"
+              >
+                Start Game
+              </Button>
+            )}
+            <div className="text-cream text-xl">
+              Players:
+              {players.map((player, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  {player.name} {player.ready ? '✅' : '⏳'}
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-12">

@@ -19,6 +19,7 @@ interface GameLobbyProps {
 interface Player {
   name: string;
   ready: boolean;
+  cards?: any[];
 }
 
 export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
@@ -75,7 +76,8 @@ export const GameLobby = ({ onJoinGame, playerName }: GameLobbyProps) => {
       const initialGameState = {
         players: [{
           name: playerName,
-          ready: false
+          ready: false,
+          cards: []
         }],
         gameStarted: false,
         currentPlayer: 0,
