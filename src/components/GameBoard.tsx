@@ -275,9 +275,14 @@ const GameBoard = () => {
     }
   }, [players, gameStarted]);
 
+  const isGameEnding = () => {
+    return finalTurnDelay || 
+           (finalTurnPlayer !== null && currentPlayer === finalTurnPlayer && 
+            players[finalTurnPlayer].cards.some(card => !card.faceUp));
+  };
+
   const drawCard = (fromDiscard: boolean = false) => {
-    // Check if it's the final turn and if the current player is allowed to play
-    if (finalTurnDelay || (finalTurnPlayer !== null && currentPlayer !== finalTurnPlayer)) {
+    if (isGameEnding()) {
       toast("Game is ending...");
       return;
     }
@@ -325,8 +330,7 @@ const GameBoard = () => {
   };
 
   const handleCardClick = (index: number) => {
-    // Check if it's the final turn and if the current player is allowed to play
-    if (finalTurnDelay || (finalTurnPlayer !== null && currentPlayer !== finalTurnPlayer)) {
+    if (isGameEnding()) {
       toast("Game is ending...");
       return;
     }
@@ -422,8 +426,7 @@ const GameBoard = () => {
   };
 
   const discardDrawnCard = () => {
-    // Check if it's the final turn and if the current player is allowed to play
-    if (finalTurnDelay || (finalTurnPlayer !== null && currentPlayer !== finalTurnPlayer)) {
+    if (isGameEnding()) {
       toast("Game is ending...");
       return;
     }
