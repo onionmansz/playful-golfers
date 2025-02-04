@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PlayingCard from "./PlayingCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
