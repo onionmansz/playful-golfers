@@ -243,21 +243,23 @@ const GameBoard = () => {
       setDrawnCard(null);
       setCanFlipCard(false);
       nextTurn();
-    } else if (canFlipCard && !currentPlayerCards[index].faceUp && faceDownCards > 1) {
-      // Only allow flipping if there's more than one face-down card
-      currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
-      
-      setPlayers(prevPlayers => {
-        const newPlayers = [...prevPlayers];
-        newPlayers[currentPlayer] = {
-          ...newPlayers[currentPlayer],
-          cards: currentPlayerCards,
-        };
-        return newPlayers;
-      });
-      
-      setCanFlipCard(false);
-      nextTurn();
+    } else if (canFlipCard && !currentPlayerCards[index].faceUp) {
+      // Allow flipping if there's more than one face-down card OR if this is the last card
+      if (faceDownCards > 1 || faceDownCards === 1) {
+        currentPlayerCards[index] = { ...currentPlayerCards[index], faceUp: true };
+        
+        setPlayers(prevPlayers => {
+          const newPlayers = [...prevPlayers];
+          newPlayers[currentPlayer] = {
+            ...newPlayers[currentPlayer],
+            cards: currentPlayerCards,
+          };
+          return newPlayers;
+        });
+        
+        setCanFlipCard(false);
+        nextTurn();
+      }
     }
   };
 
